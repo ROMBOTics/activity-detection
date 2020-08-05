@@ -1,7 +1,7 @@
 {
-  "name": "@rombotics/template-library-js",
-  "version": "1.0.204",
-  "description": "A template TypeScript library",
+  "name": "@rombotics/activity-detection",
+  "version": "1.0.0",
+  "description": "Activity Detection",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "scripts": {
@@ -17,29 +17,33 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ROMBOTics/template-library-js.git"
+    "url": "git+https://github.com/ROMBOTics/activity-detection.git"
   },
   "files": [
     "lib/**/*"
   ],
   "keywords": [
-    "Template",
-    "Library",
-    "Javascript"
+    "Rombit",
+    "Activity",
+    "Detection"
   ],
   "license": "UNLICENSED",
   "author": "Christian Nuss",
   "bugs": {
-    "url": "https://github.com/ROMBOTics/template-library-js/issues"
+    "url": "https://github.com/ROMBOTics/activity-detection/issues"
   },
-  "homepage": "https://github.com/ROMBOTics/template-library-js#readme",
+  "homepage": "https://github.com/ROMBOTics/activity-detection#readme",
   "devDependencies": {
     "@types/jest": "^25.1.3",
     "jest": "^25.1.0",
     "prettier": "^1.19.1",
     "ts-jest": "^25.2.1",
-    "tslint": "^6.0.0",
+    "tslint": "^6.1.3",
     "tslint-config-prettier": "^1.18.0",
     "typescript": "^3.7.5"
+  },
+  "dependencies": {
+    "ml-pca": "^4.0.1",
+    "three": "^0.119.1"
   }
 }

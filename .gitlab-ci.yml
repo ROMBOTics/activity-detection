@@ -7,7 +7,13 @@ cache:
 stages:
   - test
   - build
-  - deploy
+  - release
+
+before_script:
+  - npm config set prefix /usr/local
+  - npm config set //npm.pkg.github.com/:_authToken=${NPM_TOKEN} # FYI NPM_TOKEN is set https://gitlab.com/groups/rombotics/-/settings/ci_cd
+  - npm config set @rombotics:registry=https://npm.pkg.github.com
+  - npm config set always-auth=true
 
 test:
   stage: test
@@ -21,18 +27,16 @@ build:
     - npm run build
   artifacts:
     paths:
-      - lib/
+      - dist/
 
-deploy:
-  stage: deploy
+release:
+  stage: release
   script:
     - git config --global user.email "github@rombot.com"
     - git config --global user.name "Rombot Build Bot"
     - git remote set-url origin https://${NPM_TOKEN}:x-oauth-basic@github.com/rombotics/$CI_PROJECT_NAME
     - npm version patch --unsafe-perm
-    - npm config set //npm.pkg.github.com/:_authToken=${NPM_TOKEN} # FYI NPM_TOKEN is set https://gitlab.com/groups/rombotics/-/settings/ci_cd
-    - npm config set @rombotics:registry=https://npm.pkg.github.com
-    - npm config set always-auth=true
     - npm publish --unsafe-perm
+  when: manual
   only:
     - master
