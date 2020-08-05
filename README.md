@@ -1,9 +1,4 @@
-# TypeScript Template Library
+# Activity Detection Library
 
-## Usage
-
-1. Create a new repo with this repo as the template
-1. Update `pacakage.json` with values that match your new repo
-1. Write code!
-1. Update this file to reflect your project.
-1. Commit and Push. GitLab will make and version a release for you.
+The following library is used to ingest raw data from the Rombit/Rombangle
+and to provide various levels of activity detection.
