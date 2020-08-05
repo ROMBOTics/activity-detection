@@ -1,0 +1,5 @@
+- repo: git://github.com/awebdeveloper/pre-commit-tslint/
+  rev: '' # Use the sha or tag you want to point at
+  hooks:
+    - id: tslint
+      additional_dependencies: ['tslint', 'typescript']

@@ -23,20 +23,20 @@ export default class ActivityDetection {
   private packets: Packets = new Packets();
   private packetCounter: number = 0;
   private ema: number[] = [];
-  private last_len: number = 0;
-  private q_c: Quaternion = new Quaternion();
-  private q_base: Vector3 = new Vector3(0, 1, 0);
-  private q_u_world: Vector3 = new Vector3(0, 1, 0);
-  private pre_data_std: number = 0;
-  private last_position: number = 0;
-  private last_plank_angle: number = -1;
+  private lastLen: number = 0;
+  private qC: Quaternion = new Quaternion();
+  private qBase: Vector3 = new Vector3(0, 1, 0);
+  private qUWorld: Vector3 = new Vector3(0, 1, 0);
+  private preDataStd: number = 0;
+  private lastPosition: number = 0;
+  private lastPlankAngle: number = -1;
 
   private getWindowSize = () => {
     return Math.round((this.repCounterConstants.windowWidth / 90) * this.packets.getFrequency());
   };
 
   getPreviousSampleCount = () => {
-    return this.last_len;
+    return this.lastLen;
   };
 
   private globalConstants: { [key: string]: any } = {
@@ -74,9 +74,9 @@ export default class ActivityDetection {
   calculateReps = (): any => {
     if (this.packets.accelArray().length > 0) {
       const pca = new PCA(this.packets.accelArray());
-      let scores = pca.predict(this.packets.accelArray());
+      const scores = pca.predict(this.packets.accelArray());
 
-      let column: any = scores.getColumn(0);
+      const column: any = scores.getColumn(0);
 
       this.emaCalc(column);
 
@@ -89,20 +89,20 @@ export default class ActivityDetection {
   };
 
   private acf = (f: number[], s: number[]) => {
-    let n = Math.min(f.length, s.length);
+    const n = Math.min(f.length, s.length);
     f = f.slice(0, n);
     s = s.slice(0, n);
 
-    let mean =
+    const mean =
       (f.reduce((a: number, b: number) => a + b, 0) + s.reduce((a: number, b: number) => a + b, 0)) /
       (f.length + s.length);
 
-    let c0 = f.reduce((acc: number, val: number) => acc + (val - mean) ** 2, 0);
-    let acf_lag =
-      f.reduce(function(acc: number, val: number, idx: number) {
+    const c0 = f.reduce((acc: number, val: number) => acc + (val - mean) ** 2, 0);
+    const acfLag =
+      f.reduce((acc: number, val: number, idx: number) => {
         return acc + (val - mean) * (s[idx] - mean);
       }, 0) / c0;
-    return acf_lag > MIN_ACF_COEFF;
+    return acfLag > MIN_ACF_COEFF;
   };
 
   private emaCalc = (mArray: number[]) => {
@@ -119,32 +119,32 @@ export default class ActivityDetection {
   }
 
   private detectPeaks = (inputData: number[]) => {
-    let peaks = [];
-    let mins = [];
-    let mean = inputData.reduce((a: number, b: number) => a + b, 0) / inputData.length;
-    let threshold = Math.max(
+    const peaks = [];
+    const mins = [];
+    const mean = inputData.reduce((a: number, b: number) => a + b, 0) / inputData.length;
+    const threshold = Math.max(
       this.repCounterConstants.peakProminenceFactor * (mean - Math.min(...inputData)),
       MIN_EXTECTED_PEAK_PROMINENCE,
     );
 
     for (let i = 0; i < inputData.length; i++) {
-      let start = Math.max(0, i - this.getWindowSize());
-      let end = Math.min(i + this.getWindowSize(), inputData.length);
+      const start = Math.max(0, i - this.getWindowSize());
+      const end = Math.min(i + this.getWindowSize(), inputData.length);
 
       if (
-        (start == i || inputData[i] > Math.max(...inputData.slice(start, i))) &&
-        (i + 1 == end || inputData[i] > Math.max(...inputData.slice(i + 1, end))) &&
-        (mins.length == 0 || inputData[i] - inputData[mins[mins.length - 1]] > threshold) &&
-        (peaks.length == 0 || i - peaks[peaks.length - 1] > this.getWindowSize())
+        (start === i || inputData[i] > Math.max(...inputData.slice(start, i))) &&
+        (i + 1 === end || inputData[i] > Math.max(...inputData.slice(i + 1, end))) &&
+        (mins.length === 0 || inputData[i] - inputData[mins[mins.length - 1]] > threshold) &&
+        (peaks.length === 0 || i - peaks[peaks.length - 1] > this.getWindowSize())
       ) {
         if (peaks.length <= mins.length) peaks.push(i);
         else if (inputData[i] > inputData[peaks[peaks.length - 1]]) peaks[peaks.length - 1] = i;
       }
       if (
-        (start == i || inputData[i] < Math.min(...inputData.slice(start, i))) &&
-        (i + 1 == end || inputData[i] < Math.min(...inputData.slice(i + 1, end))) &&
-        (peaks.length == 0 || inputData[peaks[peaks.length - 1]] - inputData[i] > threshold) &&
-        (mins.length == 0 || i - mins[mins.length - 1] > this.getWindowSize())
+        (start === i || inputData[i] < Math.min(...inputData.slice(start, i))) &&
+        (i + 1 === end || inputData[i] < Math.min(...inputData.slice(i + 1, end))) &&
+        (peaks.length === 0 || inputData[peaks[peaks.length - 1]] - inputData[i] > threshold) &&
+        (mins.length === 0 || i - mins[mins.length - 1] > this.getWindowSize())
       ) {
         if (mins.length <= peaks.length) mins.push(i);
         else if (inputData[i] < inputData[mins[mins.length - 1]]) mins[mins.length - 1] = i;
@@ -170,9 +170,9 @@ export default class ActivityDetection {
           i + 2 < peaks.length ? wIdx.push(i + 2) : i - 4 > 0 ? wIdx.push(i - 4) : wIdx.push(0);
       }
       let correlation = false;
-      let w1 = inputData.slice(peaks[i], i < peaks.length - 1 ? peaks[i + 1] : inputData.length);
-      for (let j of wIdx) {
-        let w2 = inputData.slice(peaks[j], peaks[j + 1]);
+      const w1 = inputData.slice(peaks[i], i < peaks.length - 1 ? peaks[i + 1] : inputData.length);
+      for (const j of wIdx) {
+        const w2 = inputData.slice(peaks[j], peaks[j + 1]);
         correlation = this.acf(w1, w2) || correlation;
       }
       if (correlation) rst += 1;
@@ -182,149 +182,147 @@ export default class ActivityDetection {
   };
 
   private zeroCrossings = (data: number[]) => {
-    let mean = data.reduce((a: number, b: number) => a + b, 0) / data.length;
-    var rst = [];
-    var dst = [];
-    var zcount = 0;
+    const mean = data.reduce((a: number, b: number) => a + b, 0) / data.length;
+    const rst = [];
+    const dst = [];
+    let zcount = 0;
     for (let i = 0; i < data.length; i++) {
       if ((data[i] - mean) * (data[i + 1] - mean) < 0) rst.push(i);
     }
 
     for (let i = 0; i < rst.length - 1; i++) dst.push(rst[i + 1] - rst[i]);
 
-    for (let i = 0; i < dst.length; i++) if (dst[i] >= this.getWindowSize() / 4) zcount += 1;
+    for (const d of dst) if (d >= this.getWindowSize() / 4) zcount += 1;
     return Math.ceil(zcount / 2);
   };
 
   initializePlankParameters = () => {
     const pca = new PCA(this.packets.accelArray());
     const scores = pca.predict(this.packets.accelArray());
-    let column = scores.getColumn(0);
+    const column = scores.getColumn(0);
 
-    const pre_data_mean = column.reduce((a, b) => a + b) / column.length;
-    this.pre_data_std = Math.sqrt(
-      column.map(x => Math.pow(x - pre_data_mean, 2)).reduce((a, b) => a + b) / column.length,
-    );
+    const preDataMean = column.reduce((a, b) => a + b) / column.length;
+    this.preDataStd = Math.sqrt(column.map(x => Math.pow(x - preDataMean, 2)).reduce((a, b) => a + b) / column.length);
 
-    if (this.pre_data_std < REST_MAXIMUM_STD) this.last_position = REST;
-    else this.last_position = RANDOM_MOVEMENT;
+    if (this.preDataStd < REST_MAXIMUM_STD) this.lastPosition = REST;
+    else this.lastPosition = RANDOM_MOVEMENT;
   };
 
   isInPlankPosition = (t: number): any => {
-    let n = this.packets.getLength() - this.last_len;
-    let angles = this.calcAngle();
-    const angles_mean = angles.reduce((a, b) => a + b) / n;
-    const angle_std = Math.sqrt(angles.map(x => Math.pow(x - angles_mean, 2)).reduce((a, b) => a + b) / angles.length);
+    const n = this.packets.getLength() - this.lastLen;
+    const angles = this.calcAngle();
+    const anglesMean = angles.reduce((a, b) => a + b) / n;
+    const angleStd = Math.sqrt(angles.map(x => Math.pow(x - anglesMean, 2)).reduce((a, b) => a + b) / angles.length);
 
-    // console.log('last postion is '+ this.last_position);
-    switch (this.last_position) {
+    // console.log('last postion is '+ this.lastPosition);
+    switch (this.lastPosition) {
       case REST:
         // console.log('last posiotion: REST');
-        if (angle_std > REST_MAXIMUM_STD) this.last_position = RANDOM_MOVEMENT;
+        if (angleStd > REST_MAXIMUM_STD) this.lastPosition = RANDOM_MOVEMENT;
         break;
 
       case RANDOM_MOVEMENT:
         // console.log('last posiotion: RANDOM MOVEMENT');
         if (
-          angle_std < PLANK_MAXIMUM_STD &&
-          (this.last_plank_angle === -1 || Math.abs(angles_mean - this.last_plank_angle) < 10)
+          angleStd < PLANK_MAXIMUM_STD &&
+          (this.lastPlankAngle === -1 || Math.abs(anglesMean - this.lastPlankAngle) < 10)
         ) {
-          this.last_position = PLANK;
-          this.last_plank_angle = angles_mean;
+          this.lastPosition = PLANK;
+          this.lastPlankAngle = anglesMean;
         }
         break;
 
       case PLANK:
-        if (angle_std > PLANK_MAXIMUM_STD) this.last_position = RANDOM_MOVEMENT;
+        if (angleStd > PLANK_MAXIMUM_STD) this.lastPosition = RANDOM_MOVEMENT;
         break;
     }
-    return this.last_position === PLANK;
+    return this.lastPosition === PLANK;
   };
 
   private calcAngle() {
-    let angles: number[] = [];
-    if (this.last_len == 0) {
-      let accxMean =
+    const angles: number[] = [];
+    if (this.lastLen === 0) {
+      const accxMean =
         this.packets
           .accelx(0)
           .slice(0, 30)
           .reduce((a: number, b: number) => a + b, 0) / 30;
-      let accyMean =
+      const accyMean =
         this.packets
           .accely(0)
           .slice(0, 30)
           .reduce((a: number, b: number) => a + b, 0) / 30;
-      let acczMean =
+      const acczMean =
         this.packets
           .accelz(0)
           .slice(0, 30)
           .reduce((a: number, b: number) => a + b, 0) / 30;
-      let norm = Math.sqrt(accxMean ** 2 + accyMean ** 2 + acczMean ** 2);
+      const norm = Math.sqrt(accxMean ** 2 + accyMean ** 2 + acczMean ** 2);
 
-      this.q_u_world = new Vector3((-1 * accxMean) / norm, (-1 * accyMean) / norm, (-1 * acczMean) / norm);
+      this.qUWorld = new Vector3((-1 * accxMean) / norm, (-1 * accyMean) / norm, (-1 * acczMean) / norm);
     }
     const dt = 1 / this.repCounterConstants.windowWidth;
     const alpha = 0.97;
 
-    for (let i = 0; i < this.packets.getLength() - this.last_len; i++) {
-      let w = [
-        this.packets.gyrox(this.last_len)[i] * GYRO_CONVERSION_RATIO,
-        this.packets.gyroy(this.last_len)[i] * GYRO_CONVERSION_RATIO,
-        this.packets.gyroz(this.last_len)[i] * GYRO_CONVERSION_RATIO,
+    for (let i = 0; i < this.packets.getLength() - this.lastLen; i++) {
+      const w = [
+        this.packets.gyrox(this.lastLen)[i] * GYRO_CONVERSION_RATIO,
+        this.packets.gyroy(this.lastLen)[i] * GYRO_CONVERSION_RATIO,
+        this.packets.gyroz(this.lastLen)[i] * GYRO_CONVERSION_RATIO,
       ];
 
-      let w_norm = Math.sqrt(Math.pow(w[0], 2) + Math.pow(w[1], 2) + Math.pow(w[2], 2));
+      const wNorm = Math.sqrt(Math.pow(w[0], 2) + Math.pow(w[1], 2) + Math.pow(w[2], 2));
 
-      let teta = dt * w_norm;
+      const teta = dt * wNorm;
 
-      let q_delta = new Quaternion(
-        (Math.sin(teta / 2) * w[0]) / w_norm,
-        (Math.sin(teta / 2) * w[1]) / w_norm,
-        (Math.sin(teta / 2) * w[2]) / w_norm,
+      const qDelta = new Quaternion(
+        (Math.sin(teta / 2) * w[0]) / wNorm,
+        (Math.sin(teta / 2) * w[1]) / wNorm,
+        (Math.sin(teta / 2) * w[2]) / wNorm,
         Math.cos(teta / 2),
       );
 
-      let q_t_dt = this.q_c.multiply(q_delta);
+      const qTDt = this.qC.multiply(qDelta);
 
-      let acc = [
-        this.packets.accelx(this.last_len)[i] * ACC_CONVERSION_RATIO,
-        this.packets.accely(this.last_len)[i] * ACC_CONVERSION_RATIO,
-        this.packets.accelz(this.last_len)[i] * ACC_CONVERSION_RATIO,
+      const acc = [
+        this.packets.accelx(this.lastLen)[i] * ACC_CONVERSION_RATIO,
+        this.packets.accely(this.lastLen)[i] * ACC_CONVERSION_RATIO,
+        this.packets.accelz(this.lastLen)[i] * ACC_CONVERSION_RATIO,
       ];
 
-      let acc_norm = Math.sqrt(Math.pow(acc[0], 2) + Math.pow(acc[1], 2) + Math.pow(acc[2], 2));
+      const accNorm = Math.sqrt(Math.pow(acc[0], 2) + Math.pow(acc[1], 2) + Math.pow(acc[2], 2));
 
-      var q_a = new Vector3(acc[0] / acc_norm, acc[1] / acc_norm, acc[2] / acc_norm);
-      q_a.applyQuaternion(q_t_dt);
-      let q_a_world = q_a;
+      const qA = new Vector3(acc[0] / accNorm, acc[1] / accNorm, acc[2] / accNorm);
+      qA.applyQuaternion(qTDt);
+      const qAWorld = qA;
 
-      let q_a_world_norm = Math.sqrt(Math.pow(q_a_world.x, 2) + Math.pow(q_a_world.y, 2) + Math.pow(q_a_world.z, 2));
+      const qAWorldNorm = Math.sqrt(Math.pow(qAWorld.x, 2) + Math.pow(qAWorld.y, 2) + Math.pow(qAWorld.z, 2));
 
-      let v_x = q_a_world.x / q_a_world_norm;
-      let v_y = q_a_world.y / q_a_world_norm;
-      let v_z = q_a_world.z / q_a_world_norm;
+      const vX = qAWorld.x / qAWorldNorm;
+      const vY = qAWorld.y / qAWorldNorm;
+      const vZ = qAWorld.z / qAWorldNorm;
 
-      let n_norm = Math.sqrt(Math.pow(v_z, 2) + Math.pow(v_x, 2));
+      const nNorm = Math.sqrt(Math.pow(vZ, 2) + Math.pow(vX, 2));
 
-      let ang = (1 - alpha) * Math.acos(v_y);
+      const ang = (1 - alpha) * Math.acos(vY);
 
-      this.q_c = new Quaternion(
-        (Math.sin(ang / 2) * -v_z) / n_norm,
+      this.qC = new Quaternion(
+        (Math.sin(ang / 2) * -vZ) / nNorm,
         0,
-        (Math.sin(ang / 2) * v_x) / n_norm,
+        (Math.sin(ang / 2) * vX) / nNorm,
         Math.cos(ang / 2),
-      ).multiply(q_t_dt);
-      let temp = new Vector3(this.q_u_world.x, this.q_u_world.y, this.q_u_world.z);
-      let q_u = temp.applyQuaternion(this.q_c);
-      angles.push(Math.round((q_u.angleTo(this.q_base) * 180) / Math.PI));
+      ).multiply(qTDt);
+      const temp = new Vector3(this.qUWorld.x, this.qUWorld.y, this.qUWorld.z);
+      const qU = temp.applyQuaternion(this.qC);
+      angles.push(Math.round((qU.angleTo(this.qBase) * 180) / Math.PI));
 
-      if (i + this.last_len == DEFAULT_FREQUENCY * 2) {
-        let h = temp.applyQuaternion(this.q_c);
-        this.q_base = new Vector3(h.x, h.y, h.z);
+      if (i + this.lastLen === DEFAULT_FREQUENCY * 2) {
+        const h = temp.applyQuaternion(this.qC);
+        this.qBase = new Vector3(h.x, h.y, h.z);
       }
     }
 
-    this.last_len = this.packets.getLength();
+    this.lastLen = this.packets.getLength();
 
     return angles;
   }
