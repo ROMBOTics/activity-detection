@@ -1,0 +1,14 @@
+export declare const REP_COUNTER_DEFAULT_PEAK_PROMINENCE_FACTOR = 0.4;
+export declare const REP_COUNTER_DEFAULT_WINDOW_WIDTH = 70;
+export declare const GLOBAL_DEFAULT_PACKET_SAMPLE_RATE = 2;
+export declare const MIN_EXTECTED_PEAK_PROMINENCE = 600;
+export declare const DEFAULT_EMA_FACTOR = 0.01;
+export declare const MIN_ACF_COEFF = 0.5;
+export declare const GYRO_CONVERSION_RATIO: number;
+export declare const ACC_CONVERSION_RATIO: number;
+export declare const DEFAULT_FREQUENCY = 90;
+export declare const REST = 0;
+export declare const PLANK = 1;
+export declare const RANDOM_MOVEMENT = 2;
+export declare const REST_MAXIMUM_STD = 0.2;
+export declare const PLANK_MAXIMUM_STD = 2;

@@ -1,0 +1,16 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.REP_COUNTER_DEFAULT_PEAK_PROMINENCE_FACTOR = 0.4;
+exports.REP_COUNTER_DEFAULT_WINDOW_WIDTH = 70;
+exports.GLOBAL_DEFAULT_PACKET_SAMPLE_RATE = 2;
+exports.MIN_EXTECTED_PEAK_PROMINENCE = 600;
+exports.DEFAULT_EMA_FACTOR = 0.01;
+exports.MIN_ACF_COEFF = 0.5;
+exports.GYRO_CONVERSION_RATIO = (2000 * Math.PI) / (32768 * 180);
+exports.ACC_CONVERSION_RATIO = (2 * 9.81) / 32768;
+exports.DEFAULT_FREQUENCY = 90;
+exports.REST = 0;
+exports.PLANK = 1;
+exports.RANDOM_MOVEMENT = 2;
+exports.REST_MAXIMUM_STD = 0.2;
+exports.PLANK_MAXIMUM_STD = 2;

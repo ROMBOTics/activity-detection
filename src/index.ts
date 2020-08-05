@@ -1,6 +1,5 @@
 import { Vector3, Quaternion } from 'three';
 import { PCA } from 'ml-pca';
-import { convertFromLSBandMSBToNumber } from './util';
 import {
   GLOBAL_DEFAULT_PACKET_SAMPLE_RATE,
   REP_COUNTER_DEFAULT_PEAK_PROMINENCE_FACTOR,
@@ -17,127 +16,10 @@ import {
   ACC_CONVERSION_RATIO,
   DEFAULT_FREQUENCY,
 } from './constants';
+import Packets from './packets';
+import Packet from './packet';
 
-export class Packet {
-  count: number;
-  timeMs: number;
-  data: number[];
-
-  constructor(count: number, data: number[]) {
-    this.count = count;
-    this.timeMs = Date.now();
-
-    this.data = data;
-  }
-
-  packetCounter = () => convertFromLSBandMSBToNumber(this.data.slice(2, 4)) || 0;
-  deltaTime = () => convertFromLSBandMSBToNumber(this.data.slice(0, 2)) || 0;
-  accelX = () => convertFromLSBandMSBToNumber(this.data.slice(8, 10)) || 0;
-  accelY = () => convertFromLSBandMSBToNumber(this.data.slice(10, 12)) || 0;
-  accelZ = () => convertFromLSBandMSBToNumber(this.data.slice(12, 14)) || 0;
-  gyroX = () => convertFromLSBandMSBToNumber(this.data.slice(14, 16)) || 0;
-  gyroY = () => convertFromLSBandMSBToNumber(this.data.slice(16, 18)) || 0;
-  gyroZ = () => convertFromLSBandMSBToNumber(this.data.slice(18, 20)) || 0;
-  mag1X = () => convertFromLSBandMSBToNumber(this.data.slice(20, 22)) || 0;
-  mag1Y = () => convertFromLSBandMSBToNumber(this.data.slice(22, 24)) || 0;
-  mag1Z = () => convertFromLSBandMSBToNumber(this.data.slice(24, 26)) || 0;
-  mag2X = () => convertFromLSBandMSBToNumber(this.data.slice(26, 28)) || 0;
-  mag2Y = () => convertFromLSBandMSBToNumber(this.data.slice(28, 30)) || 0;
-  mag2Z = () => convertFromLSBandMSBToNumber(this.data.slice(30, 32)) || 0;
-
-  accelArray = () => [this.accelX(), this.accelY()];
-
-  gyroArray = () => [this.gyroX(), this.gyroY(), this.gyroZ()];
-
-  fullMap = () => {
-    return {
-      count: this.count,
-      packet_counter: this.packetCounter(),
-      delta_time: this.deltaTime(),
-      accel_X: this.accelX(),
-      accel_Y: this.accelY(),
-      accel_Z: this.accelZ(),
-      gyro_X: this.gyroX(),
-      gryo_Y: this.gyroY(),
-      gyro_Z: this.gyroZ(),
-      mag1_X: this.mag1X(),
-      mag1_Y: this.mag1Y(),
-      mag1_Z: this.mag1Z(),
-      mag2_X: this.mag2X(),
-      mag2_Y: this.mag2Y(),
-      mag3_Z: this.mag2Z(),
-    };
-  };
-}
-
-class Packets {
-  private packets: Packet[];
-  private frequency: number;
-
-  constructor() {
-    this.packets = [];
-    this.frequency = 0;
-  }
-
-  push = (packet: Packet) => {
-    this.packets.push(packet);
-    this.frequency = Math.round(
-      this.getLength() / (this.packets[this.packets.length - 1].deltaTime() - this.packets[0].deltaTime()) + 1,
-    );
-  };
-
-  getLength = () => {
-    return this.packets.length;
-  };
-
-  getFrequency = () => {
-    return this.frequency;
-  };
-
-  accelArray = () => {
-    return this.packets.map(packet => {
-      const accelArray: number[] = packet.accelArray() || [];
-      return accelArray;
-    });
-  };
-
-  deltaTimeArray = () =>
-    this.packets.map(packet => {
-      return packet.deltaTime();
-    });
-
-  accelx = (startIdx: number) =>
-    this.packets.slice(startIdx, this.packets.length).map(packet => {
-      return packet.accelX();
-    });
-  accely = (startIdx: number) =>
-    this.packets.slice(startIdx, this.packets.length).map(packet => {
-      return packet.accelY();
-    });
-  accelz = (startIdx: number) =>
-    this.packets.slice(startIdx, this.packets.length).map(packet => {
-      return packet.accelZ();
-    });
-  gyrox = (startIdx: number) =>
-    this.packets.slice(startIdx, this.packets.length).map(packet => {
-      return packet.gyroX();
-    });
-  gyroy = (startIdx: number) =>
-    this.packets.slice(startIdx, this.packets.length).map(packet => {
-      return packet.gyroY();
-    });
-  gyroz = (startIdx: number) =>
-    this.packets.slice(startIdx, this.packets.length).map(packet => {
-      return packet.gyroZ();
-    });
-
-  fullMap = () =>
-    this.packets.map(packet => {
-      return packet.fullMap();
-    });
-}
-
-export class ActivityDetection {
+export default class ActivityDetection {
   private packets: Packets = new Packets();
   private packetCounter: number = 0;
   private ema: number[] = [];
