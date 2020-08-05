@@ -350,3 +350,5 @@ export default class ActivityDetection {
     return angles;
   }
 }
+
+export { RawData } from './packet';
