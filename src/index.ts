@@ -17,7 +17,7 @@ import {
   DEFAULT_FREQUENCY,
 } from './constants';
 import Packets from './packets';
-import Packet from './packet';
+import { Packet, RawData } from './packet';
 
 export default class ActivityDetection {
   private packets: Packets = new Packets();
@@ -30,6 +30,13 @@ export default class ActivityDetection {
   private preDataStd: number = 0;
   private lastPosition: number = 0;
   private lastPlankAngle: number = -1;
+  private flush = (data: RawData[]) => {
+    return;
+  };
+
+  onFlush = (fn: (data: RawData[]) => void) => {
+    this.flush = fn;
+  };
 
   private getWindowSize = () => {
     return Math.round((this.repCounterConstants.windowWidth / 90) * this.packets.getFrequency());
@@ -62,6 +69,17 @@ export default class ActivityDetection {
     this.packetCounter++;
     if (this.packetCounter % this.globalConstants.packetSampleRate)
       this.packets.push(new Packet(this.packetCounter, data));
+
+    this.doFlush();
+  };
+
+  private shouldFlush = () => this.packetCounter > this.getWindowSize() * 3;
+  private doFlush = () => {
+    if (!this.shouldFlush()) {
+      return;
+    }
+    const rawData = this.packets.flush(0, this.getWindowSize() - 1);
+    this.flush(rawData);
   };
 
   getRepCounterIntervalMilliseconds = () => this.getWindowSize() * 15;

@@ -1,6 +1,24 @@
 import { convertFromLSBandMSBToNumber } from './util';
 
-export default class Packet {
+export interface RawData {
+  count: number;
+  packet_counter: number;
+  delta_time: number;
+  accel_X: number;
+  accel_Y: number;
+  accel_Z: number;
+  gyro_X: number;
+  gryo_Y: number;
+  gyro_Z: number;
+  mag1_X: number;
+  mag1_Y: number;
+  mag1_Z: number;
+  mag2_X: number;
+  mag2_Y: number;
+  mag3_Z: number;
+}
+
+export class Packet {
   count: number;
   timeMs: number;
   data: number[];
@@ -31,7 +49,7 @@ export default class Packet {
 
   gyroArray = () => [this.gyroX(), this.gyroY(), this.gyroZ()];
 
-  fullMap = () => {
+  fullMap = (): RawData => {
     return {
       count: this.count,
       packet_counter: this.packetCounter(),

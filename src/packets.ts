@@ -1,4 +1,4 @@
-import Packet from './packet';
+import { Packet, RawData } from './packet';
 
 export default class Packets {
   private packets: Packet[];
@@ -61,8 +61,16 @@ export default class Packets {
       return packet.gyroZ();
     });
 
-  fullMap = () =>
+  fullMap = (): RawData[] =>
     this.packets.map(packet => {
       return packet.fullMap();
     });
+
+  flush = (start: number, end: number) => {
+    const flushPackets = this.packets.slice(start, end);
+    this.packets = this.packets.slice(end);
+    return flushPackets.map(packet => {
+      return packet.fullMap();
+    });
+  };
 }
