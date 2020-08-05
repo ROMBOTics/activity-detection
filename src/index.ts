@@ -30,11 +30,11 @@ export default class ActivityDetection {
   private preDataStd: number = 0;
   private lastPosition: number = 0;
   private lastPlankAngle: number = -1;
-  private flush = (data: RawData[]) => {
+  private flush = (promise: Promise<RawData[]>) => {
     return;
   };
 
-  onFlush = (fn: (data: RawData[]) => void) => {
+  onFlush = (fn: (promise: Promise<RawData[]>) => void) => {
     this.flush = fn;
   };
 
@@ -78,8 +78,13 @@ export default class ActivityDetection {
     if (!this.shouldFlush()) {
       return;
     }
-    const rawData = this.packets.flush(0, this.getWindowSize() - 1);
-    this.flush(rawData);
+
+    this.flush(
+      new Promise<RawData[]>((resolve, _reject) => {
+        const rawData = this.packets.flush(0, this.getWindowSize() - 1);
+        resolve(rawData);
+      }),
+    );
   };
 
   getRepCounterIntervalMilliseconds = () => this.getWindowSize() * 15;
