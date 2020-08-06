@@ -19,7 +19,7 @@ import {
 import Packets from './packets';
 import { Packet, RawData } from './packet';
 
-export default class ActivityDetection {
+export class ActivityDetection {
   private packets: Packets = new Packets();
   private packetCounter: number = 0;
   private ema: number[] = [];

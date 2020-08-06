@@ -2,8 +2,8 @@
   "name": "@rombotics/activity-detection",
   "version": "1.0.1",
   "description": "Activity Detection",
-  "main": "lib/index.js",
-  "types": "lib/index.d.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
     "test": "jest --config jestconfig.json",
     "build": "tsc",
@@ -20,7 +20,7 @@
     "url": "git+https://github.com/ROMBOTics/activity-detection.git"
   },
   "files": [
-    "lib/**/*"
+    "dist/**/*"
   ],
   "keywords": [
     "Rombit",
