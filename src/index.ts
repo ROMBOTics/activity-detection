@@ -74,14 +74,15 @@ export class ActivityDetection {
   };
 
   private shouldFlush = () => this.packetCounter > this.getWindowSize() * 3;
-  private doFlush = () => {
-    if (!this.shouldFlush()) {
+  doFlush = (force: boolean = false) => {
+    if (!this.shouldFlush() && !force) {
       return;
     }
 
     this.flush(
       new Promise<RawData[]>((resolve, _reject) => {
-        const rawData = this.packets.flush(0, this.getWindowSize() - 1);
+        const length = force ? this.packets.getLength() : this.getWindowSize();
+        const rawData = this.packets.flush(0, length);
         resolve(rawData);
       }),
     );
