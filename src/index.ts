@@ -1,4 +1,5 @@
 import { Vector3, Quaternion } from 'three';
+import { v4 as uuidv4 } from 'uuid';
 import { PCA } from 'ml-pca';
 import {
   GLOBAL_DEFAULT_PACKET_SAMPLE_RATE,
@@ -20,6 +21,7 @@ import Packets from './packets';
 import { Packet, RawData } from './packet';
 
 export class ActivityDetection {
+  private id: string;
   private packets: Packets = new Packets();
   private packetCounter: number = 0;
   private ema: number[] = [];
@@ -30,11 +32,15 @@ export class ActivityDetection {
   private preDataStd: number = 0;
   private lastPosition: number = 0;
   private lastPlankAngle: number = -1;
-  private flush = (promise: Promise<RawData[]>) => {
+  constructor() {
+    this.id = uuidv4();
+  }
+
+  private flush = (promise: Promise<{ id: string; data: RawData[] }>) => {
     return;
   };
 
-  onFlush = (fn: (promise: Promise<RawData[]>) => void) => {
+  onFlush = (fn: (promise: Promise<{ id: string; data: RawData[] }>) => void) => {
     this.flush = fn;
   };
 
@@ -73,17 +79,22 @@ export class ActivityDetection {
     this.doFlush();
   };
 
-  private shouldFlush = () => this.packetCounter > this.getWindowSize() * 3;
+  private shouldFlush = () => this.packetCounter >= this.getWindowSize() * 3;
   doFlush = (force: boolean = false) => {
     if (!this.shouldFlush() && !force) {
       return;
     }
 
+    const id = this.id;
+    if (force) {
+      this.id = uuidv4();
+    }
+
     this.flush(
-      new Promise<RawData[]>((resolve, _reject) => {
+      new Promise<{ id: string; data: RawData[] }>((resolve, _reject) => {
         const length = force ? this.packets.getLength() : this.getWindowSize();
         const rawData = this.packets.flush(0, length);
-        resolve(rawData);
+        resolve({ id, data: rawData });
       }),
     );
   };
