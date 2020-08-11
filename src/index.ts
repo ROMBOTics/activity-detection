@@ -76,7 +76,11 @@ export class ActivityDetection {
     if (this.packetCounter % this.globalConstants.packetSampleRate)
       this.packets.push(new Packet(this.packetCounter, data));
 
+    const lastPacket = this.packets.last();
+
     this.doFlush();
+
+    return lastPacket;
   };
 
   private shouldFlush = () => this.packetCounter >= this.getWindowSize() * 3;

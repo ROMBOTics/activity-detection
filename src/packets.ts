@@ -16,6 +16,10 @@ export default class Packets {
     );
   };
 
+  last = () => {
+    return this.packets.slice(-1).pop();
+  };
+
   getLength = () => {
     return this.packets.length;
   };
