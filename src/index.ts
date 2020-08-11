@@ -1,5 +1,4 @@
 import { Vector3, Quaternion } from 'three';
-import { v4 as uuidv4 } from 'uuid';
 import { PCA } from 'ml-pca';
 import {
   GLOBAL_DEFAULT_PACKET_SAMPLE_RATE,
@@ -33,7 +32,7 @@ export class ActivityDetection {
   private lastPosition: number = 0;
   private lastPlankAngle: number = -1;
   constructor() {
-    this.id = uuidv4();
+    this.id = new Date().getTime().toString();
   }
 
   private flush = (promise: Promise<{ id: string; data: RawData[] }>) => {
@@ -91,7 +90,7 @@ export class ActivityDetection {
 
     const id = this.id;
     if (force) {
-      this.id = uuidv4();
+      this.id = new Date().getTime().toString();
     }
 
     this.flush(
