@@ -58,14 +58,14 @@ export class Packet {
       accel_Y: this.accelY(),
       accel_Z: this.accelZ(),
       gyro_X: this.gyroX(),
-      gryo_Y: this.gyroY(),
+      gyro_Y: this.gyroY(),
       gyro_Z: this.gyroZ(),
       mag1_X: this.mag1X(),
       mag1_Y: this.mag1Y(),
       mag1_Z: this.mag1Z(),
       mag2_X: this.mag2X(),
       mag2_Y: this.mag2Y(),
-      mag3_Z: this.mag2Z(),
+      mag2_Z: this.mag2Z(),
     };
   };
 }
