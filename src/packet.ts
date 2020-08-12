@@ -45,9 +45,13 @@ export class Packet {
   mag2Y = () => convertFromLSBandMSBToNumber(this.data.slice(28, 30)) || 0;
   mag2Z = () => convertFromLSBandMSBToNumber(this.data.slice(30, 32)) || 0;
 
-  accelArray = () => [this.accelX(), this.accelY()];
+  accelArray = () => [this.accelX(), this.accelY(), this.accelZ()];
 
   gyroArray = () => [this.gyroX(), this.gyroY(), this.gyroZ()];
+
+  mag1Array = () => [this.mag1X(), this.mag1Y(), this.mag1Z()];
+
+  mag2Array = () => [this.mag2X(), this.mag2Y(), this.mag2Z()];
 
   fullMap = (): RawData => {
     return {
