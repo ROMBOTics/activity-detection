@@ -8,14 +8,14 @@ export interface RawData {
   accel_Y: number;
   accel_Z: number;
   gyro_X: number;
-  gryo_Y: number;
+  gyro_Y: number;
   gyro_Z: number;
   mag1_X: number;
   mag1_Y: number;
   mag1_Z: number;
   mag2_X: number;
   mag2_Y: number;
-  mag3_Z: number;
+  mag2_Z: number;
 }
 
 export class Packet {
