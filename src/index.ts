@@ -34,7 +34,9 @@ export class ActivityDetection {
   private lastPosition: number = 0;
   private lastPlankAngle: number = -1;
   private flushIndex: number = -1;
-  constructor() {
+  private debug: boolean = false;
+  constructor(debug = false) {
+    this.debug = debug;
     this.id = new Date().getTime().toString();
   }
 
@@ -76,8 +78,11 @@ export class ActivityDetection {
     this.packetCounter++;
     if (this.packetCounter % this.globalConstants.packetSampleRate) {
       const index = this.packets.push(new Packet(this.packetCounter, data));
+      if (this.debug) console.log(`Pushing packet ${this.packetCounter} at index ${index}`);
+
       if (index > this.getWindowSize() * REATIN_WINDOWS) {
         this.flushIndex += 1;
+        if (this.debug) console.log(`Flush index incremented ${this.flushIndex}, window size is ${this.getWindowSize}`);
       }
     }
 
@@ -93,10 +98,13 @@ export class ActivityDetection {
     const index = this.flushIndex;
     this.flushIndex = -1;
 
+    if (this.debug) console.log(`Flushing packets through ${index}, total packets length: ${this.packets.getLength()}`);
+
     this.flush(
       new Promise<{ id: string; data: RawData[] }>((resolve, _reject) => {
         const length = all ? this.packets.getLength() : index;
         const rawData = this.packets.flush(0, length);
+        if (this.debug) console.log(`Fushing ${rawData.length} packets`);
         resolve({ id, data: rawData });
       }),
     );
