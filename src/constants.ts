@@ -12,3 +12,5 @@ export const PLANK = 1;
 export const RANDOM_MOVEMENT = 2;
 export const REST_MAXIMUM_STD = 0.2;
 export const PLANK_MAXIMUM_STD = 2;
+export const REATIN_WINDOWS = 10;
+export const FLUSH_SIZE = 5000;

@@ -10,10 +10,11 @@ export default class Packets {
   }
 
   push = (packet: Packet) => {
-    this.packets.push(packet);
+    const index = this.packets.push(packet);
     this.frequency = Math.round(
       this.getLength() / (this.packets[this.packets.length - 1].deltaTime() - this.packets[0].deltaTime()) + 1,
     );
+    return index;
   };
 
   last = () => {

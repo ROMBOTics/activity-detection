@@ -15,6 +15,8 @@ import {
   GYRO_CONVERSION_RATIO,
   ACC_CONVERSION_RATIO,
   DEFAULT_FREQUENCY,
+  REATIN_WINDOWS,
+  FLUSH_SIZE,
 } from './constants';
 import Packets from './packets';
 import { Packet, RawData } from './packet';
@@ -31,6 +33,7 @@ export class ActivityDetection {
   private preDataStd: number = 0;
   private lastPosition: number = 0;
   private lastPlankAngle: number = -1;
+  private flushIndex: number = -1;
   constructor() {
     this.id = new Date().getTime().toString();
   }
@@ -70,32 +73,29 @@ export class ActivityDetection {
   };
 
   pushData = (data: number[]) => {
-    // console.log(data.length);
     this.packetCounter++;
-    if (this.packetCounter % this.globalConstants.packetSampleRate)
-      this.packets.push(new Packet(this.packetCounter, data));
+    if (this.packetCounter % this.globalConstants.packetSampleRate) {
+      const index = this.packets.push(new Packet(this.packetCounter, data));
+      if (index > this.getWindowSize() * REATIN_WINDOWS) {
+        this.flushIndex += 1;
+      }
+    }
 
-    const lastPacket = this.packets.last();
+    if (this.flushIndex > FLUSH_SIZE) {
+      this.doFlush();
+    }
 
-    this.doFlush();
-
-    return lastPacket;
+    return this.packets.last();
   };
 
-  private shouldFlush = () => this.packetCounter >= this.getWindowSize() * 3;
-  doFlush = (force: boolean = false) => {
-    if (!this.shouldFlush() && !force) {
-      return;
-    }
-
+  doFlush = (all: boolean = false) => {
     const id = this.id;
-    if (force) {
-      this.id = new Date().getTime().toString();
-    }
+    const index = this.flushIndex;
+    this.flushIndex = -1;
 
     this.flush(
       new Promise<{ id: string; data: RawData[] }>((resolve, _reject) => {
-        const length = force ? this.packets.getLength() : this.getWindowSize();
+        const length = all ? this.packets.getLength() : index;
         const rawData = this.packets.flush(0, length);
         resolve({ id, data: rawData });
       }),
