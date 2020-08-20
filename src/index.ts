@@ -41,10 +41,12 @@ export class ActivityDetection {
   }
 
   private flush = (promise: Promise<{ id: string; data: RawData[] }>) => {
+    if (this.debug) console.log(`Flush ignored`);
     return;
   };
 
-  onFlush = (fn: (promise: Promise<{ id: string; data: RawData[] }>) => void) => {
+  setFlushHandler = (fn: (promise: Promise<{ id: string; data: RawData[] }>) => void) => {
+    if (this.debug) console.log(`Setting flush handler to: ${fn}`);
     this.flush = fn;
   };
 
@@ -87,7 +89,7 @@ export class ActivityDetection {
       }
     }
 
-    if (this.flushIndex > FLUSH_SIZE) {
+    if (this.flushIndex >= FLUSH_SIZE) {
       this.doFlush();
     }
 
