@@ -74,7 +74,7 @@ export class ActivityDetection {
     this.repCounterConstants[name] = parseFloat(value);
   };
 
-  pushData = (data: number[]) => {
+  pushData = async (data: number[]) => {
     this.packetCounter++;
     if (this.packetCounter % this.globalConstants.packetSampleRate) {
       const index = this.packets.push(new Packet(this.packetCounter, data));
@@ -82,7 +82,8 @@ export class ActivityDetection {
 
       if (index > this.getWindowSize() * REATIN_WINDOWS) {
         this.flushIndex += 1;
-        if (this.debug) console.log(`Flush index incremented ${this.flushIndex}, window size is ${this.getWindowSize}`);
+        if (this.debug)
+          console.log(`Flush index incremented ${this.flushIndex}, window size is ${this.getWindowSize()}`);
       }
     }
 
