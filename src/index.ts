@@ -84,13 +84,10 @@ export class ActivityDetection {
   pushData = async (data: number[]) => {
     this.packetCounter++;
     if (this.packetCounter % this.globalConstants.packetSampleRate) {
-      const index = this.packets.push(new Packet(this.packetCounter, data));
+      const packet = new Packet(this.packetCounter, data);
+      const index = this.packets.push(packet);
       if (this.debug)
-        console.log(
-          `Pushing packet ${this.packetCounter} at index ${index}, delta time is ${this.packets
-            .at(index)
-            .deltaTime()}}`,
-        );
+        console.log(`Pushing packet ${this.packetCounter} at index ${index}, delta time is ${packet.deltaTime()}}`);
 
       if (index > this.getWindowSize() * this.retainWindows) {
         this.flushIndex += 1;
