@@ -38,10 +38,10 @@ export class ActivityDetection {
   private retainWindows: number = REATIN_WINDOWS;
   private flushSize: number = FLUSH_SIZE;
 
-  constructor(retainWindows = REATIN_WINDOWS, flushSize = FLUSH_SIZE, debug = false) {
+  constructor(debug = false, retainWindows = REATIN_WINDOWS, flushSize = FLUSH_SIZE) {
+    this.debug = debug;
     this.retainWindows = retainWindows;
     this.flushSize = flushSize;
-    this.debug = debug;
     this.id = new Date().getTime().toString();
   }
 
