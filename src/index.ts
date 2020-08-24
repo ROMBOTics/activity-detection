@@ -35,7 +35,12 @@ export class ActivityDetection {
   private lastPlankAngle: number = -1;
   private flushIndex: number = -1;
   private debug: boolean = false;
-  constructor(debug = false) {
+  private retainWindows: number = REATIN_WINDOWS;
+  private flushSize: number = FLUSH_SIZE;
+
+  constructor(retainWindows = REATIN_WINDOWS, flushSize = FLUSH_SIZE, debug = false) {
+    this.retainWindows = retainWindows;
+    this.flushSize = flushSize;
     this.debug = debug;
     this.id = new Date().getTime().toString();
   }
@@ -82,14 +87,14 @@ export class ActivityDetection {
       const index = this.packets.push(new Packet(this.packetCounter, data));
       if (this.debug) console.log(`Pushing packet ${this.packetCounter} at index ${index}`);
 
-      if (index > this.getWindowSize() * REATIN_WINDOWS) {
+      if (index > this.getWindowSize() * this.retainWindows) {
         this.flushIndex += 1;
         if (this.debug)
           console.log(`Flush index incremented ${this.flushIndex}, window size is ${this.getWindowSize()}`);
       }
     }
 
-    if (this.flushIndex >= FLUSH_SIZE) {
+    if (this.flushIndex >= this.flushSize) {
       this.doFlush();
     }
 
