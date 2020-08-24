@@ -17,6 +17,10 @@ export default class Packets {
     return index;
   };
 
+  at = (index: number) => {
+    return this.packets[index];
+  };
+
   last = () => {
     return this.packets.slice(-1).pop();
   };
