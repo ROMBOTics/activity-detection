@@ -21,6 +21,7 @@ import {
   WALKING_FREQUENCY_LEAST_THRESHOLD,
   HEIGHT_2_STEPS_PER_MILE,
   ACTIVITY_SPEED_2_MET,
+  HEIGHT_DEFAULT,
 } from './constants';
 import Packets from './packets';
 import { Packet, RawData } from './packet';
@@ -42,12 +43,14 @@ export class ActivityDetection {
   private debug: boolean = false;
   private retainWindows: number = REATIN_WINDOWS;
   private flushSize: number = FLUSH_SIZE;
+  private height : string = HEIGHT_DEFAULT;
 
-  constructor(debug = false, retainWindows = REATIN_WINDOWS, flushSize = FLUSH_SIZE) {
+  constructor(debug = false, retainWindows = REATIN_WINDOWS, flushSize = FLUSH_SIZE, height = HEIGHT_DEFAULT) {
     this.debug = debug;
     this.retainWindows = retainWindows;
     this.flushSize = flushSize;
     this.id = new Date().getTime().toString();
+    this.height = height;
   }
 
   private flush = (promise: Promise<{ id: string; data: RawData[] }>) => {
@@ -392,19 +395,18 @@ export class ActivityDetection {
     if (this.packets.accelArray().length > 0) {
       const pca = new PCA(this.packets.gyroArray());
       const scores = pca.predict(this.packets.gyroArray());
-      const column: any = scores.getColumn(0);
+      const column = scores.getColumn(0);
       this.emaCalc(column);
       return 2 * this.detectPeaks(this.ema);
     }
   };
   
   predictAcitivityClass = (): string => {
-
+    const ft = require('fourier-transform');
     const samplingFrequency = this.packets.getFrequency();
     const pca = new PCA(this.packets.gyroArray());
     const scores = pca.predict(this.packets.gyroArray());
     const column: any = scores.getColumn(0);
-    const ft = require('fourier-transform');
 
     const spectrum = ft(column);
     const tpCount = column.length();
@@ -426,12 +428,9 @@ export class ActivityDetection {
         return 'Sitting'
   }
 
-  getHeight = (): string => {
-    return '5,5'
-  }
   calculateMet = (): number => {
     const steps = this.calculateSteps();
-    const distance = steps / HEIGHT_2_STEPS_PER_MILE[this.getHeight()];
+    const distance = steps / HEIGHT_2_STEPS_PER_MILE[this.height];
     const duration = this.packets.calcDeltaTime();
     const speed = distance / (duration /3600)
     const cls = this.predictAcitivityClass()

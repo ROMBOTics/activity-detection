@@ -14,6 +14,7 @@ export const REST_MAXIMUM_STD = 0.2;
 export const PLANK_MAXIMUM_STD = 2;
 export const REATIN_WINDOWS = 10;
 export const FLUSH_SIZE = 2000;
+export const HEIGHT_DEFAULT = '5,5';
 export const WALKING_FREQUENCY_LEAST_THRESHOLD = 0.8;
 export const RUNNING_FREQUENCY_LEAST_THRESHOLD = 1.2;
 
