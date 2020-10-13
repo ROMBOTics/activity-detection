@@ -400,20 +400,20 @@ export class ActivityDetection {
   
   predictAcitivityClass = (): string => {
 
-    let samplingFrequency = this.packets.getFrequency();
+    const samplingFrequency = this.packets.getFrequency();
     const pca = new PCA(this.packets.gyroArray());
     const scores = pca.predict(this.packets.gyroArray());
     const column: any = scores.getColumn(0);
     const ft = require('fourier-transform');
 
-    let spectrum = ft(column);
-    let tpCount = column.length();
-    let values = [...Array(Math.floor( tpCount / 2)).keys()];
-    let timePeriod = tpCount / samplingFrequency
-    let frequencies = values.map(function(v: number){
+    const spectrum = ft(column);
+    const tpCount = column.length();
+    const values = [...Array(Math.floor( tpCount / 2)).keys()];
+    const timePeriod = tpCount / samplingFrequency
+    const frequencies =  values.map((v: number)=>{
       return v / timePeriod;
     });  
-    let mf = frequencies[spectrum.indexOf(Math.max(...spectrum))];
+    const mf = frequencies[spectrum.indexOf(Math.max(...spectrum))];
 
 
     if (mf> RUNNING_FREQUENCY_LEAST_THRESHOLD)
@@ -430,23 +430,24 @@ export class ActivityDetection {
     return '5,5'
   }
   calculateMet = (): number => {
-    let steps = this.calculateSteps();
-    let distance = steps / HEIGHT_2_STEPS_PER_MILE[this.getHeight()];
-    let duration = this.packets.calc_delta_time();
-    let speed = distance / (duration /3600)
-    let cls = this.predictAcitivityClass()
+    const steps = this.calculateSteps();
+    const distance = steps / HEIGHT_2_STEPS_PER_MILE[this.getHeight()];
+    const duration = this.packets.calcDeltaTime();
+    const speed = distance / (duration /3600)
+    const cls = this.predictAcitivityClass()
     for (const [index, element] of Object.keys(ACTIVITY_SPEED_2_MET[cls]).entries()){
-      if (parseFloat(element) ==  speed || index == (Object.keys(ACTIVITY_SPEED_2_MET[cls])).length-1){
+      if (parseFloat(element) ===  speed || index === (Object.keys(ACTIVITY_SPEED_2_MET[cls])).length-1){
         return ACTIVITY_SPEED_2_MET[cls][element]
       }
-      let next_key = parseFloat(Object.keys(ACTIVITY_SPEED_2_MET[cls])[index + 1])
-      if (next_key >speed)
+      const nextKey = parseFloat(Object.keys(ACTIVITY_SPEED_2_MET[cls])[index + 1])
+      if (nextKey >speed)
           if (Math.abs(speed - parseFloat(Object.keys(ACTIVITY_SPEED_2_MET[cls])[parseFloat(element)])) < 
-          Math.abs(speed - ACTIVITY_SPEED_2_MET[cls][next_key])){
+          Math.abs(speed - ACTIVITY_SPEED_2_MET[cls][nextKey])){
             return ACTIVITY_SPEED_2_MET[cls][parseFloat(element)]
           }
-          else
-            return ACTIVITY_SPEED_2_MET[cls][next_key]
+          else{
+            return ACTIVITY_SPEED_2_MET[cls][nextKey]
+          }
     }
   return 0;
 

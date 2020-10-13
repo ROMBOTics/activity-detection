@@ -12,7 +12,7 @@ export default class Packets {
   push = (packet: Packet) => {
     const index = this.packets.push(packet);
     this.frequency = Math.round(
-      this.getLength() / this.calc_delta_time()+ 1,
+      this.getLength() / this.calcDeltaTime() + 1,
     );
     return index;
   };
@@ -29,7 +29,7 @@ export default class Packets {
     return this.packets.length;
   };
 
-  calc_delta_time = () => {
+  calcDeltaTime = () => {
     let start = 0;
     let dtime= 0;
     let idx = 1;
