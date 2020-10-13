@@ -17,9 +17,14 @@ import {
   DEFAULT_FREQUENCY,
   REATIN_WINDOWS,
   FLUSH_SIZE,
+  RUNNING_FREQUENCY_LEAST_THRESHOLD,
+  WALKING_FREQUENCY_LEAST_THRESHOLD,
+  HEIGHT_2_STEPS_PER_MILE,
+  ACTIVITY_SPEED_2_MET,
 } from './constants';
 import Packets from './packets';
 import { Packet, RawData } from './packet';
+
 
 export class ActivityDetection {
   private id: string;
@@ -295,7 +300,7 @@ export class ActivityDetection {
     return this.lastPosition === PLANK;
   };
 
-  private calcAngle() {
+  calcAngle = () => {
     const angles: number[] = [];
     if (this.lastLen === 0) {
       const accxMean =
@@ -381,6 +386,70 @@ export class ActivityDetection {
     this.lastLen = this.packets.getLength();
 
     return angles;
+  }
+
+  calculateSteps = (): any => {
+    if (this.packets.accelArray().length > 0) {
+      const pca = new PCA(this.packets.gyroArray());
+      const scores = pca.predict(this.packets.gyroArray());
+      const column: any = scores.getColumn(0);
+      this.emaCalc(column);
+      return 2 * this.detectPeaks(this.ema);
+    }
+  };
+  
+  predictAcitivityClass = (): string => {
+
+    let samplingFrequency = this.packets.getFrequency();
+    const pca = new PCA(this.packets.gyroArray());
+    const scores = pca.predict(this.packets.gyroArray());
+    const column: any = scores.getColumn(0);
+    const ft = require('fourier-transform');
+
+    let spectrum = ft(column);
+    let tpCount = column.length();
+    let values = [...Array(Math.floor( tpCount / 2)).keys()];
+    let timePeriod = tpCount / samplingFrequency
+    let frequencies = values.map(function(v: number){
+      return v / timePeriod;
+    });  
+    let mf = frequencies[spectrum.indexOf(Math.max(...spectrum))];
+
+
+    if (mf> RUNNING_FREQUENCY_LEAST_THRESHOLD)
+        return 'Running'
+
+    else if( mf> WALKING_FREQUENCY_LEAST_THRESHOLD)
+        return 'Walking'
+
+    else
+        return 'Sitting'
+  }
+
+  getHeight = (): string => {
+    return '5,5'
+  }
+  calculateMet = (): number => {
+    let steps = this.calculateSteps();
+    let distance = steps / HEIGHT_2_STEPS_PER_MILE[this.getHeight()];
+    let duration = this.packets.calc_delta_time();
+    let speed = distance / (duration /3600)
+    let cls = this.predictAcitivityClass()
+    for (const [index, element] of Object.keys(ACTIVITY_SPEED_2_MET[cls]).entries()){
+      if (parseFloat(element) ==  speed || index == (Object.keys(ACTIVITY_SPEED_2_MET[cls])).length-1){
+        return ACTIVITY_SPEED_2_MET[cls][element]
+      }
+      let next_key = parseFloat(Object.keys(ACTIVITY_SPEED_2_MET[cls])[index + 1])
+      if (next_key >speed)
+          if (Math.abs(speed - parseFloat(Object.keys(ACTIVITY_SPEED_2_MET[cls])[parseFloat(element)])) < 
+          Math.abs(speed - ACTIVITY_SPEED_2_MET[cls][next_key])){
+            return ACTIVITY_SPEED_2_MET[cls][parseFloat(element)]
+          }
+          else
+            return ACTIVITY_SPEED_2_MET[cls][next_key]
+    }
+  return 0;
+
   }
 }
 
