@@ -27,6 +27,7 @@ import Packets from './packets';
 import { Packet, RawData } from './packet';
 
 
+
 export class ActivityDetection {
   private id: string;
   private packets: Packets = new Packets();
@@ -140,7 +141,7 @@ export class ActivityDetection {
       const pca = new PCA(this.packets.accelArray());
       const scores = pca.predict(this.packets.accelArray());
 
-      const column: any = scores.getColumn(0);
+      const column = scores.getColumn(0);
 
       this.emaCalc(column);
 
@@ -305,27 +306,31 @@ export class ActivityDetection {
 
   calcAngle = () => {
     const angles: number[] = [];
+    if (this.packets.getLength()< REP_COUNTER_DEFAULT_WINDOW_WIDTH){
+      return []
+    }
     if (this.lastLen === 0) {
       const accxMean =
         this.packets
           .accelx(0)
-          .slice(0, 30)
-          .reduce((a: number, b: number) => a + b, 0) / 30;
+          .slice(0, REP_COUNTER_DEFAULT_WINDOW_WIDTH)
+          .reduce((a: number, b: number) => a + b , 0) / REP_COUNTER_DEFAULT_WINDOW_WIDTH;
       const accyMean =
         this.packets
           .accely(0)
-          .slice(0, 30)
-          .reduce((a: number, b: number) => a + b, 0) / 30;
+          .slice(0, REP_COUNTER_DEFAULT_WINDOW_WIDTH)
+          .reduce((a: number, b: number) => a + b , 0) / REP_COUNTER_DEFAULT_WINDOW_WIDTH;
       const acczMean =
         this.packets
           .accelz(0)
-          .slice(0, 30)
-          .reduce((a: number, b: number) => a + b, 0) / 30;
+          .slice(0, REP_COUNTER_DEFAULT_WINDOW_WIDTH)
+          .reduce((a: number, b: number) => a + b , 0) / REP_COUNTER_DEFAULT_WINDOW_WIDTH;
+        
       const norm = Math.sqrt(accxMean ** 2 + accyMean ** 2 + acczMean ** 2);
 
       this.qUWorld = new Vector3((-1 * accxMean) / norm, (-1 * accyMean) / norm, (-1 * acczMean) / norm);
     }
-    const dt = 1 / this.repCounterConstants.windowWidth;
+    const dt = 1 / this.packets.getFrequency();
     const alpha = 0.97;
 
     for (let i = 0; i < this.packets.getLength() - this.lastLen; i++) {
@@ -377,79 +382,18 @@ export class ActivityDetection {
         Math.cos(ang / 2),
       ).multiply(qTDt);
       const temp = new Vector3(this.qUWorld.x, this.qUWorld.y, this.qUWorld.z);
+      const temp2 = new Vector3(this.qUWorld.x, this.qUWorld.y, this.qUWorld.z);
       const qU = temp.applyQuaternion(this.qC);
       angles.push(Math.round((qU.angleTo(this.qBase) * 180) / Math.PI));
 
       if (i + this.lastLen === DEFAULT_FREQUENCY * 2) {
-        const h = temp.applyQuaternion(this.qC);
+        const h = temp2.applyQuaternion(this.qC);
         this.qBase = new Vector3(h.x, h.y, h.z);
       }
     }
-
     this.lastLen = this.packets.getLength();
-
     return angles;
-  }
-
-  calculateSteps = (): any => {
-    if (this.packets.accelArray().length > 0) {
-      const pca = new PCA(this.packets.gyroArray());
-      const scores = pca.predict(this.packets.gyroArray());
-      const column = scores.getColumn(0);
-      this.emaCalc(column);
-      return 2 * this.detectPeaks(this.ema);
-    }
-  };
-  
-  predictAcitivityClass = (): string => {
-    const ft = require('fourier-transform');
-    const samplingFrequency = this.packets.getFrequency();
-    const pca = new PCA(this.packets.gyroArray());
-    const scores = pca.predict(this.packets.gyroArray());
-    const column: any = scores.getColumn(0);
-
-    const spectrum = ft(column);
-    const tpCount = column.length();
-    const values = [...Array(Math.floor( tpCount / 2)).keys()];
-    const timePeriod = tpCount / samplingFrequency
-    const frequencies =  values.map((v: number)=>{
-      return v / timePeriod;
-    });  
-    const mf = frequencies[spectrum.indexOf(Math.max(...spectrum))];
-
-
-    if (mf> RUNNING_FREQUENCY_LEAST_THRESHOLD)
-        return 'Running'
-
-    else if( mf> WALKING_FREQUENCY_LEAST_THRESHOLD)
-        return 'Walking'
-
-    else
-        return 'Sitting'
-  }
-
-  calculateMet = (): number => {
-    const steps = this.calculateSteps();
-    const distance = steps / HEIGHT_2_STEPS_PER_MILE[this.height];
-    const duration = this.packets.calcDeltaTime();
-    const speed = distance / (duration /3600)
-    const cls = this.predictAcitivityClass()
-    for (const [index, element] of Object.keys(ACTIVITY_SPEED_2_MET[cls]).entries()){
-      if (parseFloat(element) ===  speed || index === (Object.keys(ACTIVITY_SPEED_2_MET[cls])).length-1){
-        return ACTIVITY_SPEED_2_MET[cls][element]
-      }
-      const nextKey = parseFloat(Object.keys(ACTIVITY_SPEED_2_MET[cls])[index + 1])
-      if (nextKey >speed)
-          if (Math.abs(speed - parseFloat(Object.keys(ACTIVITY_SPEED_2_MET[cls])[parseFloat(element)])) < 
-          Math.abs(speed - ACTIVITY_SPEED_2_MET[cls][nextKey])){
-            return ACTIVITY_SPEED_2_MET[cls][parseFloat(element)]
-          }
-          else{
-            return ACTIVITY_SPEED_2_MET[cls][nextKey]
-          }
-    }
-  return 0;
-
+    
   }
 }
 
