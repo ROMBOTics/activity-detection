@@ -17,7 +17,6 @@ import {
   DEFAULT_FREQUENCY,
   REATIN_WINDOWS,
   FLUSH_SIZE,
-  HEIGHT_DEFAULT,
 } from './constants';
 import Packets from './packets';
 import { Packet, RawData } from './packet';
@@ -40,14 +39,13 @@ export class ActivityDetection {
   private debug: boolean = false;
   private retainWindows: number = REATIN_WINDOWS;
   private flushSize: number = FLUSH_SIZE;
-  private height : string = HEIGHT_DEFAULT;
 
-  constructor(debug = false, retainWindows = REATIN_WINDOWS, flushSize = FLUSH_SIZE, height = HEIGHT_DEFAULT) {
+
+  constructor(debug = false, retainWindows = REATIN_WINDOWS, flushSize = FLUSH_SIZE) {
     this.debug = debug;
     this.retainWindows = retainWindows;
     this.flushSize = flushSize;
     this.id = new Date().getTime().toString();
-    this.height = height;
   }
 
   private flush = (promise: Promise<{ id: string; data: RawData[] }>) => {
