@@ -11,9 +11,7 @@ export default class Packets {
 
   push = (packet: Packet) => {
     const index = this.packets.push(packet);
-    this.frequency = Math.round(
-      this.getLength() / this.calcDeltaTime() + 1,
-    );
+    this.frequency = Math.round(this.getLength() / this.calcDeltaTime() + 1);
     return index;
   };
 
@@ -31,18 +29,18 @@ export default class Packets {
 
   calcDeltaTime = () => {
     let start = 0;
-    let dtime= 0;
+    let dtime = 0;
     let idx = 1;
-    while( idx< this.packets.length){
-      if (this.packets[idx].deltaTime()< this.packets[idx-1].deltaTime()){
-        dtime += (this.packets[idx-1].deltaTime()- this.packets[start].deltaTime()) + 1
-        start = idx
+    while (idx < this.packets.length) {
+      if (this.packets[idx].deltaTime() < this.packets[idx - 1].deltaTime()) {
+        dtime += this.packets[idx - 1].deltaTime() - this.packets[start].deltaTime() + 1;
+        start = idx;
       }
-      idx+=1
+      idx += 1;
     }
-    dtime += (this.packets[idx-1].deltaTime()- this.packets[start].deltaTime()) + 1
+    dtime += this.packets[idx - 1].deltaTime() - this.packets[start].deltaTime() + 1;
     return dtime;
-  }
+  };
   getFrequency = () => {
     return this.frequency;
   };
