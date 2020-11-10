@@ -21,6 +21,12 @@ import {
 import Packets from './packets';
 import { Packet, RawData } from './packet';
 
+export interface Options {
+  debug?: boolean,
+  retainWindows?: number,
+  flushSize?: number
+}
+
 export class ActivityDetection {
   private id: string;
   private packets: Packets = new Packets();
@@ -34,24 +40,32 @@ export class ActivityDetection {
   private lastPosition: number = 0;
   private lastPlankAngle: number = -1;
   private flushIndex: number = -1;
-  private debug: boolean = false;
-  private retainWindows: number = REATIN_WINDOWS;
-  private flushSize: number = FLUSH_SIZE;
+  // private debug: boolean = false;
+  // private retainWindows: number = REATIN_WINDOWS;
+  // private flushSize: number = FLUSH_SIZE;
+  private options: Options ;
 
-  constructor(debug = false, retainWindows = REATIN_WINDOWS, flushSize = FLUSH_SIZE) {
-    this.debug = debug;
-    this.retainWindows = retainWindows;
-    this.flushSize = flushSize;
-    this.id = new Date().getTime().toString();
-  }
+
+  
+
+
+  constructor(options: Options = {
+    debug:false,
+    retainWindows: REATIN_WINDOWS,
+    flushSize: FLUSH_SIZE
+    }){
+      this.options = options;
+      this.id = new Date().getTime().toString(); 
+    };
+  
 
   private flush = (promise: Promise<{ id: string; data: RawData[] }>) => {
-    if (this.debug) console.log(`Flush ignored`);
+    if (this.options.debug) console.log(`Flush ignored`);
     return;
   };
 
   setFlushHandler = (fn: (promise: Promise<{ id: string; data: RawData[] }>) => void) => {
-    if (this.debug) console.log(`Setting flush handler to: ${fn}`);
+    if (this.options.debug) console.log(`Setting flush handler to: ${fn}`);
     this.flush = fn;
   };
 
@@ -86,17 +100,17 @@ export class ActivityDetection {
     if (this.packetCounter % this.globalConstants.packetSampleRate) {
       const packet = new Packet(this.packetCounter, data);
       const index = this.packets.push(packet);
-      if (this.debug)
+      if (this.options.debug)
         console.log(`Pushing packet ${this.packetCounter} at index ${index}, delta time is ${packet.deltaTime()}}`);
 
-      if (index > this.getWindowSize() * this.retainWindows) {
+      if (index > this.getWindowSize() * (this.options.retainWindows || REATIN_WINDOWS) ?? REATIN_WINDOWS) {
         this.flushIndex += 1;
-        if (this.debug)
+        if (this.options.debug)
           console.log(`Flush index incremented ${this.flushIndex}, window size is ${this.getWindowSize()}`);
       }
     }
 
-    if (this.flushIndex >= this.flushSize) {
+    if (this.flushIndex >= (this.options.flushSize || FLUSH_SIZE) ) {
       this.doFlush();
     }
 
@@ -108,13 +122,13 @@ export class ActivityDetection {
     const index = this.flushIndex;
     this.flushIndex = -1;
 
-    if (this.debug) console.log(`Flushing packets through ${index}, total packets length: ${this.packets.getLength()}`);
+    if (this.options.debug) console.log(`Flushing packets through ${index}, total packets length: ${this.packets.getLength()}`);
 
     this.flush(
       new Promise<{ id: string; data: RawData[] }>((resolve, _reject) => {
         const length = all ? this.packets.getLength() : index;
         const rawData = this.packets.flush(0, length);
-        if (this.debug) console.log(`Fushing ${rawData.length} packets`);
+        if (this.options.debug) console.log(`Fushing ${rawData.length} packets`);
         resolve({ id, data: rawData });
       }),
     );
@@ -132,7 +146,7 @@ export class ActivityDetection {
       const pca = new PCA(this.packets.accelArray());
       const scores = pca.predict(this.packets.accelArray());
 
-      const column: any = scores.getColumn(0);
+      const column = scores.getColumn(0);
 
       this.emaCalc(column);
 
@@ -295,29 +309,33 @@ export class ActivityDetection {
     return this.lastPosition === PLANK;
   };
 
-  private calcAngle() {
+  calcAngle = () => {
     const angles: number[] = [];
+    if (this.packets.getLength()< REP_COUNTER_DEFAULT_WINDOW_WIDTH){
+      return []
+    }
     if (this.lastLen === 0) {
       const accxMean =
         this.packets
           .accelx(0)
-          .slice(0, 30)
-          .reduce((a: number, b: number) => a + b, 0) / 30;
+          .slice(0, REP_COUNTER_DEFAULT_WINDOW_WIDTH)
+          .reduce((a: number, b: number) => a + b , 0) / REP_COUNTER_DEFAULT_WINDOW_WIDTH;
       const accyMean =
         this.packets
           .accely(0)
-          .slice(0, 30)
-          .reduce((a: number, b: number) => a + b, 0) / 30;
+          .slice(0, REP_COUNTER_DEFAULT_WINDOW_WIDTH)
+          .reduce((a: number, b: number) => a + b , 0) / REP_COUNTER_DEFAULT_WINDOW_WIDTH;
       const acczMean =
         this.packets
           .accelz(0)
-          .slice(0, 30)
-          .reduce((a: number, b: number) => a + b, 0) / 30;
+          .slice(0, REP_COUNTER_DEFAULT_WINDOW_WIDTH)
+          .reduce((a: number, b: number) => a + b , 0) / REP_COUNTER_DEFAULT_WINDOW_WIDTH;
+        
       const norm = Math.sqrt(accxMean ** 2 + accyMean ** 2 + acczMean ** 2);
 
       this.qUWorld = new Vector3((-1 * accxMean) / norm, (-1 * accyMean) / norm, (-1 * acczMean) / norm);
     }
-    const dt = 1 / this.repCounterConstants.windowWidth;
+    const dt = 1 / this.packets.getFrequency();
     const alpha = 0.97;
 
     for (let i = 0; i < this.packets.getLength() - this.lastLen; i++) {
@@ -369,18 +387,18 @@ export class ActivityDetection {
         Math.cos(ang / 2),
       ).multiply(qTDt);
       const temp = new Vector3(this.qUWorld.x, this.qUWorld.y, this.qUWorld.z);
+      const temp2 = new Vector3(this.qUWorld.x, this.qUWorld.y, this.qUWorld.z);
       const qU = temp.applyQuaternion(this.qC);
       angles.push(Math.round((qU.angleTo(this.qBase) * 180) / Math.PI));
 
       if (i + this.lastLen === DEFAULT_FREQUENCY * 2) {
-        const h = temp.applyQuaternion(this.qC);
+        const h = temp2.applyQuaternion(this.qC);
         this.qBase = new Vector3(h.x, h.y, h.z);
       }
     }
-
     this.lastLen = this.packets.getLength();
-
     return angles;
+    
   }
 }
 

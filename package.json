@@ -43,6 +43,7 @@
     "typescript": "^3.7.5"
   },
   "dependencies": {
+    "fourier-transform": "^1.1.2",
     "ml-pca": "^4.0.1",
     "three": "^0.119.1"
   }
