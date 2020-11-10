@@ -21,7 +21,11 @@ import {
 import Packets from './packets';
 import { Packet, RawData } from './packet';
 
-
+export interface Options {
+  debug?: boolean,
+  retainWindows?: number,
+  flushSize?: number
+}
 
 export class ActivityDetection {
   private id: string;
@@ -36,25 +40,32 @@ export class ActivityDetection {
   private lastPosition: number = 0;
   private lastPlankAngle: number = -1;
   private flushIndex: number = -1;
-  private debug: boolean = false;
-  private retainWindows: number = REATIN_WINDOWS;
-  private flushSize: number = FLUSH_SIZE;
+  // private debug: boolean = false;
+  // private retainWindows: number = REATIN_WINDOWS;
+  // private flushSize: number = FLUSH_SIZE;
+  private options: Options ;
 
 
-  constructor(debug = false, retainWindows = REATIN_WINDOWS, flushSize = FLUSH_SIZE) {
-    this.debug = debug;
-    this.retainWindows = retainWindows;
-    this.flushSize = flushSize;
-    this.id = new Date().getTime().toString();
-  }
+  
+
+
+  constructor(options: Options = {
+    debug:false,
+    retainWindows: REATIN_WINDOWS,
+    flushSize: FLUSH_SIZE
+    }){
+      this.options = options;
+      this.id = new Date().getTime().toString(); 
+    };
+  
 
   private flush = (promise: Promise<{ id: string; data: RawData[] }>) => {
-    if (this.debug) console.log(`Flush ignored`);
+    if (this.options.debug) console.log(`Flush ignored`);
     return;
   };
 
   setFlushHandler = (fn: (promise: Promise<{ id: string; data: RawData[] }>) => void) => {
-    if (this.debug) console.log(`Setting flush handler to: ${fn}`);
+    if (this.options.debug) console.log(`Setting flush handler to: ${fn}`);
     this.flush = fn;
   };
 
@@ -89,17 +100,17 @@ export class ActivityDetection {
     if (this.packetCounter % this.globalConstants.packetSampleRate) {
       const packet = new Packet(this.packetCounter, data);
       const index = this.packets.push(packet);
-      if (this.debug)
+      if (this.options.debug)
         console.log(`Pushing packet ${this.packetCounter} at index ${index}, delta time is ${packet.deltaTime()}}`);
 
-      if (index > this.getWindowSize() * this.retainWindows) {
+      if (index > this.getWindowSize() * (this.options.retainWindows || REATIN_WINDOWS) ?? REATIN_WINDOWS) {
         this.flushIndex += 1;
-        if (this.debug)
+        if (this.options.debug)
           console.log(`Flush index incremented ${this.flushIndex}, window size is ${this.getWindowSize()}`);
       }
     }
 
-    if (this.flushIndex >= this.flushSize) {
+    if (this.flushIndex >= (this.options.flushSize || FLUSH_SIZE) ) {
       this.doFlush();
     }
 
@@ -111,13 +122,13 @@ export class ActivityDetection {
     const index = this.flushIndex;
     this.flushIndex = -1;
 
-    if (this.debug) console.log(`Flushing packets through ${index}, total packets length: ${this.packets.getLength()}`);
+    if (this.options.debug) console.log(`Flushing packets through ${index}, total packets length: ${this.packets.getLength()}`);
 
     this.flush(
       new Promise<{ id: string; data: RawData[] }>((resolve, _reject) => {
         const length = all ? this.packets.getLength() : index;
         const rawData = this.packets.flush(0, length);
-        if (this.debug) console.log(`Fushing ${rawData.length} packets`);
+        if (this.options.debug) console.log(`Fushing ${rawData.length} packets`);
         resolve({ id, data: rawData });
       }),
     );
