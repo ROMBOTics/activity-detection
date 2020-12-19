@@ -23,6 +23,7 @@ import { Packet, RawData } from './packet';
 
 export interface Options {
   debug?: boolean;
+  doFlush?: boolean;
   retainWindows?: number;
   flushSize?: number;
 }
@@ -40,9 +41,6 @@ export class ActivityDetection {
   private lastPosition: number = 0;
   private lastPlankAngle: number = -1;
   private flushIndex: number = -1;
-  // private debug: boolean = false;
-  // private retainWindows: number = REATIN_WINDOWS;
-  // private flushSize: number = FLUSH_SIZE;
   private options: Options;
 
   constructor(
@@ -50,6 +48,7 @@ export class ActivityDetection {
       debug: false,
       retainWindows: REATIN_WINDOWS,
       flushSize: FLUSH_SIZE,
+      doFlush: true,
     },
   ) {
     this.options = options;
@@ -97,17 +96,18 @@ export class ActivityDetection {
     if (this.packetCounter % this.globalConstants.packetSampleRate) {
       const packet = new Packet(this.packetCounter, data);
       const index = this.packets.push(packet);
-      if (this.options.debug)
-        console.log(`Pushing packet ${this.packetCounter} at index ${index}, delta time is ${packet.deltaTime()}}`);
+      // if (this.debug)
+      //   console.log(`Pushing packet ${this.packetCounter} at index ${index}, delta time is ${packet.deltaTime()}}`);
 
       if (index > this.getWindowSize() * (this.options.retainWindows || REATIN_WINDOWS) ?? REATIN_WINDOWS) {
         this.flushIndex += 1;
-        if (this.options.debug)
-          console.log(`Flush index incremented ${this.flushIndex}, window size is ${this.getWindowSize()}`);
+        // if (this.debug)
+        //   console.log(`Flush index incremented ${this.flushIndex}, window size is ${this.getWindowSize()}`);
       }
     }
 
-    if (this.flushIndex >= (this.options.flushSize || FLUSH_SIZE)) {
+    if (this.options.doFlush && this.flushIndex >= (this.options.flushSize || FLUSH_SIZE)) {
+      console.log('push data');
       this.doFlush();
     }
 
@@ -115,6 +115,7 @@ export class ActivityDetection {
   };
 
   doFlush = (all: boolean = false) => {
+    console.log('do flush');
     const id = this.id;
     const index = this.flushIndex;
     this.flushIndex = -1;
@@ -126,7 +127,8 @@ export class ActivityDetection {
       new Promise<{ id: string; data: RawData[] }>((resolve, _reject) => {
         const length = all ? this.packets.getLength() : index;
         const rawData = this.packets.flush(0, length);
-        if (this.options.debug) console.log(`Fushing ${rawData.length} packets`);
+        if (this.options.debug) console.log(`Fushing ${rawData.length} packets `);
+        if (this.options.debug) console.log(`packet size ${this.packets.getLength()} `);
         resolve({ id, data: rawData });
       }),
     );
@@ -269,8 +271,10 @@ export class ActivityDetection {
     const scores = pca.predict(this.packets.accelArray());
     const column = scores.getColumn(0);
 
-    const preDataMean = column.reduce((a, b) => a + b) / column.length;
-    this.preDataStd = Math.sqrt(column.map(x => Math.pow(x - preDataMean, 2)).reduce((a, b) => a + b) / column.length);
+    const preDataMean = column.reduce((a: number, b: number) => a + b) / column.length;
+    this.preDataStd = Math.sqrt(
+      column.map((x: number) => Math.pow(x - preDataMean, 2)).reduce((a: number, b: number) => a + b) / column.length,
+    );
 
     if (this.preDataStd < REST_MAXIMUM_STD) this.lastPosition = REST;
     else this.lastPosition = RANDOM_MOVEMENT;
