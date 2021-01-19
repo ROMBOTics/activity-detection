@@ -74,11 +74,11 @@ export class ActivityDetection {
     return this.lastLen;
   };
 
-  private globalConstants: { [key: string]: any } = {
+  readonly globalConstants: { [key: string]: any } = {
     packetSampleRate: GLOBAL_DEFAULT_PACKET_SAMPLE_RATE,
   };
 
-  private repCounterConstants: { [key: string]: any } = {
+  readonly repCounterConstants: { [key: string]: any } = {
     peakProminenceFactor: REP_COUNTER_DEFAULT_PEAK_PROMINENCE_FACTOR,
     windowWidth: REP_COUNTER_DEFAULT_WINDOW_WIDTH,
     ema_factor: DEFAULT_EMA_FACTOR,
