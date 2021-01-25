@@ -7,11 +7,6 @@ import {
   DEFAULT_EMA_FACTOR,
   MIN_ACF_COEFF,
   MIN_EXTECTED_PEAK_PROMINENCE,
-  REST_MAXIMUM_STD,
-  REST,
-  RANDOM_MOVEMENT,
-  PLANK_MAXIMUM_STD,
-  PLANK,
   GYRO_CONVERSION_RATIO,
   ACC_CONVERSION_RATIO,
   DEFAULT_FREQUENCY,
@@ -48,7 +43,7 @@ export class ActivityDetection {
   private options: Options;
   private flushedReps: number = 0;
   private repsToFlush: number = 0;
-  private angleCalculationPromise: Promise<number[]> | null = null;
+  private angleCalculationPromise: Promise<number> | null = null;
   private repsCalculationPromise: Promise<number[]> | null = null;
   private flushedInstancesStats: FlushedInstancesStats;
 
@@ -57,7 +52,6 @@ export class ActivityDetection {
       debug: false,
       retainWindows: REATIN_WINDOWS,
       flushSize: FLUSH_SIZE,
-      // doFlush: true,
     },
   ) {
     this.options = options;
@@ -117,17 +111,27 @@ export class ActivityDetection {
     }
 
     if (this.flushIndex >= (this.options.flushSize || FLUSH_SIZE)) {
-      console.log('push data');
+      this.setStats();
       this.doFlush();
     }
 
     return this.packets.last();
   };
-
-  doFlush = (all: boolean = false) => {
-    console.log('do flush');
+  private setStats = () => {
     this.flushedReps += this.repsToFlush;
     this.repsToFlush = 0;
+    const length = this.flushIndex;
+    this.flushedInstancesStats.min =
+      this.flushedInstancesStats.length === 0
+        ? Math.min(...this.ema.slice(length))
+        : Math.min(Math.min(...this.ema.slice(length)), this.flushedInstancesStats.min);
+
+    this.flushedInstancesStats.sum =
+      this.flushedInstancesStats.sum + this.ema.slice(length).reduce((a: number, b: number) => a + b, 0);
+    this.flushedInstancesStats.length += length;
+  };
+
+  doFlush = (all: boolean = false) => {
     const id = this.id;
     const index = this.flushIndex;
     this.flushIndex = -1;
@@ -139,16 +143,6 @@ export class ActivityDetection {
       new Promise<{ id: string; data: RawData[] }>((resolve, _reject) => {
         const length = all ? this.packets.getLength() : index;
         const rawData = this.packets.flush(0, length);
-
-        this.flushedInstancesStats.min =
-          this.flushedInstancesStats.length === 0
-            ? Math.min(...this.ema.slice(length))
-            : Math.min(Math.min(...this.ema.slice(length)), this.flushedInstancesStats.min);
-
-        this.flushedInstancesStats.sum =
-          this.flushedInstancesStats.sum + this.ema.slice(length).reduce((a: number, b: number) => a + b, 0);
-        this.flushedInstancesStats.length += length;
-
         if (this.options.debug) console.log(`Flushing ${rawData.length} packets `);
         if (this.options.debug) console.log(`packet size ${this.packets.getLength()} `);
         resolve({ id, data: rawData });
@@ -179,20 +173,16 @@ export class ActivityDetection {
       if (this.ema.length > 2 * this.getWindowSize()) {
         const newReps = this.detectPeaks(this.ema);
         const reps = this.flushedReps + newReps;
-        console.log('flushedReps ', this.flushedReps);
         if (this.repsToFlush === 0 && data.length === (this.options.flushSize || FLUSH_SIZE)) {
           this.repsToFlush = newReps;
-          console.log('repsToFlush ', this.repsToFlush);
         }
 
         if (this.repsToFlush === 0 && data.length > (this.options.flushSize || FLUSH_SIZE)) {
-          console.log('data length is ', data.length);
           const pca = new PCA(data);
           const scores = pca.predict(data);
           const column = scores.getColumn(0);
           this.emaCalc(column);
           this.repsToFlush = this.detectPeaks(this.ema);
-          console.log('2. repsToFlush ', this.repsToFlush);
         }
         return reps;
       }
@@ -299,66 +289,10 @@ export class ActivityDetection {
     return rst;
   };
 
-  private zeroCrossings = (data: number[]) => {
-    const mean = data.reduce((a: number, b: number) => a + b, 0) / data.length;
-    const rst = [];
-    const dst = [];
-    let zcount = 0;
-    for (let i = 0; i < data.length; i++) {
-      if ((data[i] - mean) * (data[i + 1] - mean) < 0) rst.push(i);
-    }
-
-    for (let i = 0; i < rst.length - 1; i++) dst.push(rst[i + 1] - rst[i]);
-
-    for (const d of dst) if (d >= this.getWindowSize() / 4) zcount += 1;
-    return Math.ceil(zcount / 2);
-  };
-
-  initializePlankParameters = () => {
-    const pca = new PCA(this.packets.accelArray());
-    const scores = pca.predict(this.packets.accelArray());
-    const column = scores.getColumn(0);
-
-    const preDataMean = column.reduce((a: number, b: number) => a + b) / column.length;
-    this.preDataStd = Math.sqrt(
-      column.map((x: number) => Math.pow(x - preDataMean, 2)).reduce((a: number, b: number) => a + b) / column.length,
-    );
-
-    if (this.preDataStd < REST_MAXIMUM_STD) this.lastPosition = REST;
-    else this.lastPosition = RANDOM_MOVEMENT;
-  };
-
-  isInPlankPosition = async (t: number) => {
-    const n = this.packets.getLength() - this.lastLen;
-    const angles = (await this.calculateAngles()) || [];
-    const anglesMean = angles.reduce((a, b) => a + b) / n;
-    const angleStd = Math.sqrt(angles.map(x => Math.pow(x - anglesMean, 2)).reduce((a, b) => a + b) / angles.length);
-
-    switch (this.lastPosition) {
-      case REST:
-        if (angleStd > REST_MAXIMUM_STD) this.lastPosition = RANDOM_MOVEMENT;
-        break;
-
-      case RANDOM_MOVEMENT:
-        if (
-          angleStd < PLANK_MAXIMUM_STD &&
-          (this.lastPlankAngle === -1 || Math.abs(anglesMean - this.lastPlankAngle) < 10)
-        ) {
-          this.lastPosition = PLANK;
-          this.lastPlankAngle = anglesMean;
-        }
-        break;
-
-      case PLANK:
-        if (angleStd > PLANK_MAXIMUM_STD) this.lastPosition = RANDOM_MOVEMENT;
-        break;
-    }
-    return this.lastPosition === PLANK;
-  };
-  calcAngles = () => {
-    const angles: number[] = [];
-    if (this.packets.getLength() < DEFAULT_FREQUENCY * 2) {
-      return [];
+  private calcLatestAngle = () => {
+    const packetsLength = this.packets.getLength();
+    if (packetsLength <= DEFAULT_FREQUENCY * 2) {
+      return 0;
     }
     if (this.lastLen === 0) {
       const accxMean =
@@ -381,17 +315,16 @@ export class ActivityDetection {
 
       this.qUWorld = new Vector3((-1 * accxMean) / norm, (-1 * accyMean) / norm, (-1 * acczMean) / norm);
     }
-    const startTime = new Date().getTime();
     const dt = 1 / this.packets.getFrequency();
     const alpha = 0.97;
-    const gyrox = this.packets.gyrox(this.lastLen);
-    const gyroy = this.packets.gyroy(this.lastLen);
-    const gyroz = this.packets.gyroz(this.lastLen);
-    const accelx = this.packets.accelx(this.lastLen);
-    const accely = this.packets.accely(this.lastLen);
-    const accelz = this.packets.accelz(this.lastLen);
+    const gyrox = this.packets.gyrox(this.lastLen, packetsLength);
+    const gyroy = this.packets.gyroy(this.lastLen, packetsLength);
+    const gyroz = this.packets.gyroz(this.lastLen, packetsLength);
+    const accelx = this.packets.accelx(this.lastLen, packetsLength);
+    const accely = this.packets.accely(this.lastLen, packetsLength);
+    const accelz = this.packets.accelz(this.lastLen, packetsLength);
 
-    for (let i = 0; i < this.packets.getLength() - this.lastLen; i++) {
+    for (let i = 0; i < packetsLength - this.lastLen; i++) {
       //
       const w = [gyrox[i] * GYRO_CONVERSION_RATIO, gyroy[i] * GYRO_CONVERSION_RATIO, gyroz[i] * GYRO_CONVERSION_RATIO];
 
@@ -431,33 +364,33 @@ export class ActivityDetection {
       ).multiply(qTDt);
 
       const temp = new Vector3(this.qUWorld.x, this.qUWorld.y, this.qUWorld.z);
-      const temp2 = new Vector3(this.qUWorld.x, this.qUWorld.y, this.qUWorld.z);
-
-      const qU = temp.applyQuaternion(this.qC);
-      angles.push(Math.round((qU.angleTo(this.qBase) * 180) / Math.PI));
 
       if (i + this.lastLen === DEFAULT_FREQUENCY * 2) {
-        const h = temp2.applyQuaternion(this.qC);
+        const h = temp.applyQuaternion(this.qC);
         this.qBase = new Vector3(h.x, h.y, h.z);
       }
     }
+    const temp = new Vector3(this.qUWorld.x, this.qUWorld.y, this.qUWorld.z);
+    const qU = temp.applyQuaternion(this.qC);
+    const angle = Math.round((qU.angleTo(this.qBase) * 180) / Math.PI);
 
-    this.lastLen = this.packets.getLength();
-    return angles;
+    this.lastLen = packetsLength;
+    return angle;
   };
-  calculateAngles = () => {
+
+  calculateLatestAngle = () => {
     if (this.angleCalculationPromise != null) {
       return this.angleCalculationPromise;
     }
 
-    this.angleCalculationPromise = new Promise<number[]>(resolve => {
-      const angles = this.calcAngles();
-      resolve(angles);
-    }).then(angles => {
+    this.angleCalculationPromise = new Promise<number>(resolve => {
+      const latestAngle = this.calcLatestAngle();
+      resolve(latestAngle);
+    }).then(angle => {
       setTimeout(() => {
         this.angleCalculationPromise = null;
       }, 50);
-      return angles;
+      return angle;
     });
     return this.angleCalculationPromise;
   };

@@ -64,28 +64,29 @@ export default class Packets {
       return packet.deltaTime();
     });
 
-  accelx = (startIdx: number) =>
-    this.packets.slice(startIdx, this.packets.length).map(packet => {
+  accelx = (startIdx: number, stopIndex: number = this.packets.length) =>
+    this.packets.slice(startIdx, stopIndex).map(packet => {
       return packet.accelX();
     });
-  accely = (startIdx: number) =>
-    this.packets.slice(startIdx, this.packets.length).map(packet => {
+  accely = (startIdx: number, stopIndex: number = this.packets.length) =>
+    this.packets.slice(startIdx, stopIndex).map(packet => {
       return packet.accelY();
     });
-  accelz = (startIdx: number) =>
-    this.packets.slice(startIdx, this.packets.length).map(packet => {
+  accelz = (startIdx: number, stopIndex: number = this.packets.length) =>
+    this.packets.slice(startIdx, stopIndex).map(packet => {
       return packet.accelZ();
     });
-  gyrox = (startIdx: number) =>
-    this.packets.slice(startIdx, this.packets.length).map(packet => {
+
+  gyrox = (startIdx: number, stopIndex: number = this.packets.length) =>
+    this.packets.slice(startIdx, stopIndex).map(packet => {
       return packet.gyroX();
     });
-  gyroy = (startIdx: number) =>
-    this.packets.slice(startIdx, this.packets.length).map(packet => {
+  gyroy = (startIdx: number, stopIndex: number = this.packets.length) =>
+    this.packets.slice(startIdx, stopIndex).map(packet => {
       return packet.gyroY();
     });
-  gyroz = (startIdx: number) =>
-    this.packets.slice(startIdx, this.packets.length).map(packet => {
+  gyroz = (startIdx: number, stopIndex: number = this.packets.length) =>
+    this.packets.slice(startIdx, stopIndex).map(packet => {
       return packet.gyroZ();
     });
 
