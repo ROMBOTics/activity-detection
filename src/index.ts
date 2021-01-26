@@ -162,13 +162,13 @@ export class ActivityDetection {
 
   calcReps = (index: number = -1): any => {
     if (this.packets.accelArray().length > 0) {
-      const data = index == -1 ? this.packets.accelArray() : this.packets.accelArray().slice(index);
-      const pca = new PCA(data);
-      const scores = pca.predict(data);
+      const data = index === -1 ? this.packets.accelArray() : this.packets.accelArray().slice(index);
+      const pcaModel = new PCA(data);
+      const pcaScores = pcaModel.predict(data);
 
-      const column = scores.getColumn(0);
+      const mainColumn = pcaScores.getColumn(0);
 
-      this.emaCalc(column);
+      this.emaCalc(mainColumn);
 
       if (this.ema.length > 2 * this.getWindowSize()) {
         const newReps = this.detectPeaks(this.ema);
@@ -370,8 +370,8 @@ export class ActivityDetection {
         this.qBase = new Vector3(h.x, h.y, h.z);
       }
     }
-    const temp = new Vector3(this.qUWorld.x, this.qUWorld.y, this.qUWorld.z);
-    const qU = temp.applyQuaternion(this.qC);
+    const tempVector = new Vector3(this.qUWorld.x, this.qUWorld.y, this.qUWorld.z);
+    const qU = tempVector.applyQuaternion(this.qC);
     const angle = Math.round((qU.angleTo(this.qBase) * 180) / Math.PI);
 
     this.lastLen = packetsLength;
