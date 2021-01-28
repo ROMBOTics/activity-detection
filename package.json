@@ -43,7 +43,9 @@
     "typescript": "^3.7.5"
   },
   "dependencies": {
+    "@types/lodash": "^4.14.168",
     "fourier-transform": "^1.1.2",
+    "lodash": "^4.17.20",
     "ml-pca": "^4.0.1",
     "three": "^0.119.1"
   }

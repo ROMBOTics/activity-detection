@@ -1,7 +1,7 @@
 import { Vector3, Quaternion } from 'three';
 import { PCA } from 'ml-pca';
+import { throttle } from 'lodash';
 import {
-  GLOBAL_DEFAULT_PACKET_SAMPLE_RATE,
   REP_COUNTER_DEFAULT_PEAK_PROMINENCE_FACTOR,
   REP_COUNTER_DEFAULT_WINDOW_WIDTH,
   DEFAULT_EMA_FACTOR,
@@ -12,6 +12,9 @@ import {
   DEFAULT_FREQUENCY,
   REATIN_WINDOWS,
   FLUSH_SIZE,
+  THROTTLE_ANGLE_CALCULATION_MS,
+  THROTTLE_REP_CALCULATION_MS,
+  THROTTLE_PUSH_DATA_MS,
 } from './constants';
 import Packets from './packets';
 import { Packet, RawData } from './packet';
@@ -77,37 +80,27 @@ export class ActivityDetection {
     return this.lastLen;
   };
 
-  readonly globalConstants: { [key: string]: any } = {
-    packetSampleRate: GLOBAL_DEFAULT_PACKET_SAMPLE_RATE,
-  };
-
   readonly repCounterConstants: { [key: string]: any } = {
     peakProminenceFactor: REP_COUNTER_DEFAULT_PEAK_PROMINENCE_FACTOR,
     windowWidth: REP_COUNTER_DEFAULT_WINDOW_WIDTH,
     ema_factor: DEFAULT_EMA_FACTOR,
   };
 
-  putGlobalConstant = ([name, value]: [string, number]) => {
-    this.globalConstants[name] = value;
-  };
-
   putRepCalculationConstant = ([name, value]: [string, any]) => {
     this.repCounterConstants[name] = parseFloat(value);
   };
 
-  pushData = async (data: number[]) => {
+  pushData = throttle((data: number[]) => {
     this.packetCounter++;
-    if (this.packetCounter % this.globalConstants.packetSampleRate) {
-      const packet = new Packet(this.packetCounter, data);
-      const index = this.packets.push(packet);
-      // if (this.debug)
-      //   console.log(`Pushing packet ${this.packetCounter} at index ${index}, delta time is ${packet.deltaTime()}}`);
+    const packet = new Packet(this.packetCounter, data);
+    const index = this.packets.push(packet);
+    if (this.options.debug)
+      console.log(`Pushing packet ${this.packetCounter} at index ${index}, delta time is ${packet.deltaTime()}}`);
 
-      if (index > this.getWindowSize() * (this.options.retainWindows || REATIN_WINDOWS) ?? REATIN_WINDOWS) {
-        this.flushIndex += 1;
-        // if (this.debug)
-        //   console.log(`Flush index incremented ${this.flushIndex}, window size is ${this.getWindowSize()}`);
-      }
+    if (index > this.getWindowSize() * (this.options.retainWindows || REATIN_WINDOWS) ?? REATIN_WINDOWS) {
+      this.flushIndex += 1;
+      if (this.options.debug)
+        console.log(`Flush index incremented ${this.flushIndex}, window size is ${this.getWindowSize()}`);
     }
 
     if (this.flushIndex >= (this.options.flushSize || FLUSH_SIZE)) {
@@ -116,7 +109,8 @@ export class ActivityDetection {
     }
 
     return this.packets.last();
-  };
+  }, THROTTLE_PUSH_DATA_MS);
+
   private setStats = () => {
     this.flushedReps += this.repsToFlush;
     this.repsToFlush = 0;
@@ -136,8 +130,8 @@ export class ActivityDetection {
     const index = this.flushIndex;
     this.flushIndex = -1;
 
-    // if (this.options.debug)
-    //   console.log(`Flushing packets through ${index}, total packets length: ${this.packets.getLength()}`);
+    if (this.options.debug)
+      console.log(`Flushing packets through ${index}, total packets length: ${this.packets.getLength()}`);
 
     this.flush(
       new Promise<{ id: string; data: RawData[] }>((resolve, _reject) => {
@@ -378,38 +372,13 @@ export class ActivityDetection {
     return angle;
   };
 
-  calculateLatestAngle = () => {
-    if (this.angleCalculationPromise != null) {
-      return this.angleCalculationPromise;
-    }
+  calculateLatestAngle = throttle(() => {
+    return this.calcLatestAngle();
+  }, THROTTLE_ANGLE_CALCULATION_MS);
 
-    this.angleCalculationPromise = new Promise<number>(resolve => {
-      const latestAngle = this.calcLatestAngle();
-      resolve(latestAngle);
-    }).then(angle => {
-      setTimeout(() => {
-        this.angleCalculationPromise = null;
-      }, 50);
-      return angle;
-    });
-    return this.angleCalculationPromise;
-  };
-
-  calculateTotalReps = () => {
-    if (this.repCalculationPromise != null) {
-      return this.repCalculationPromise;
-    }
-    this.repCalculationPromise = new Promise<number>(resolve => {
-      const reps = this.calcReps();
-      resolve(reps);
-    }).then(reps => {
-      setTimeout(() => {
-        this.repCalculationPromise = null;
-      }, 1000);
-      return reps;
-    });
-    return this.repCalculationPromise;
-  };
+  calculateTotalReps = throttle(() => {
+    return this.calcReps();
+  }, THROTTLE_REP_CALCULATION_MS);
 }
 
 export { RawData } from './packet';
