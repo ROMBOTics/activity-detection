@@ -44,7 +44,7 @@ export class ActivityDetection {
   private flushedReps: number = 0;
   private repsToFlush: number = 0;
   private angleCalculationPromise: Promise<number> | null = null;
-  private repsCalculationPromise: Promise<number[]> | null = null;
+  private repCalculationPromise: Promise<number> | null = null;
   private flushedInstancesStats: FlushedInstancesStats;
 
   constructor(
@@ -160,7 +160,7 @@ export class ActivityDetection {
   getSampleCount = () => this.packets.getLength();
   getRawData = () => this.packets.fullMap();
 
-  calcReps = (index: number = -1): any => {
+  private calcReps = (index: number = -1): any => {
     if (this.packets.accelArray().length > 0) {
       const data = index === -1 ? this.packets.accelArray() : this.packets.accelArray().slice(index);
       const pcaModel = new PCA(data);
@@ -395,20 +395,20 @@ export class ActivityDetection {
     return this.angleCalculationPromise;
   };
 
-  calculateReps = () => {
-    if (this.repsCalculationPromise != null) {
-      return this.repsCalculationPromise;
+  calculateTotalReps = () => {
+    if (this.repCalculationPromise != null) {
+      return this.repCalculationPromise;
     }
-    this.repsCalculationPromise = new Promise<number[]>(resolve => {
+    this.repCalculationPromise = new Promise<number>(resolve => {
       const reps = this.calcReps();
       resolve(reps);
     }).then(reps => {
       setTimeout(() => {
-        this.repsCalculationPromise = null;
+        this.repCalculationPromise = null;
       }, 1000);
       return reps;
     });
-    return this.repsCalculationPromise;
+    return this.repCalculationPromise;
   };
 }
 
