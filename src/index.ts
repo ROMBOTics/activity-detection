@@ -154,7 +154,7 @@ export class ActivityDetection {
   getSampleCount = () => this.packets.getLength();
   getRawData = () => this.packets.fullMap();
 
-  private calcReps = (index: number = -1): any => {
+  private calcReps = (index: number = -1) => {
     if (this.packets.accelArray().length > 0) {
       const data = index === -1 ? this.packets.accelArray() : this.packets.accelArray().slice(index);
       const pcaModel = new PCA(data);
