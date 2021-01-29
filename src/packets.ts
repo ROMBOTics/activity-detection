@@ -41,7 +41,7 @@ export default class Packets {
     dtime += this.packets[idx - 1].deltaTime() - this.packets[start].deltaTime() + 1;
     return dtime;
   };
-  
+
   getFrequency = () => {
     return this.frequency;
   };
